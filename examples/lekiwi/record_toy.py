@@ -16,12 +16,12 @@
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.datasets.utils import hw_to_dataset_features
-from lerobot.policies.act.modeling_act import ACTPolicy
-from lerobot.policies.pi05.modeling_pi05 import PI05Policy
-from lerobot.policies.factory import make_pre_post_processors
 from lerobot.processor import make_default_processors
-from lerobot.robots.lekiwi import LeKiwiClient, LeKiwiClientConfig
+from lerobot.robots.lekiwi.config_lekiwi import LeKiwiClientConfig
+from lerobot.robots.lekiwi.lekiwi_client import LeKiwiClient
 from lerobot.scripts.lerobot_record import record_loop
+from lerobot.teleoperators.keyboard import KeyboardTeleop, KeyboardTeleopConfig
+from lerobot.teleoperators.so101_leader import SO101Leader, SO101LeaderConfig
 from lerobot.utils.constants import ACTION, OBS_STR
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
@@ -29,18 +29,23 @@ from lerobot.utils.visualization_utils import init_rerun
 
 NUM_EPISODES = 2
 FPS = 30
-EPISODE_TIME_SEC = 60
-TASK_DESCRIPTION = "pick up toys"
-HF_MODEL_ID = "/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model/"
-HF_DATASET_ID = "davidlau90/tmp"
+EPISODE_TIME_SEC = 30
+RESET_TIME_SEC = 10
+TASK_DESCRIPTION = "lewiki toy pickup"
+HF_REPO_ID = "davidlau90/lekiwi_toy_pickup"
 
-# Create the robot configuration & robot
+# Create the robot and teleoperator configurations
 robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
+leader_arm_config = SO101LeaderConfig(port="/dev/tty.usbmodem5AB01813381", id="di")
+keyboard_config = KeyboardTeleopConfig()
 
+# Initialize the robot and teleoperator
 robot = LeKiwiClient(robot_config)
+leader_arm = SO101Leader(leader_arm_config)
+keyboard = KeyboardTeleop(keyboard_config)
 
-# Create policy
-policy = PI05Policy.from_pretrained(HF_MODEL_ID)
+# TODO(Steven): Update this example to use pipelines
+teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
 
 # Configure the dataset features
 action_features = hw_to_dataset_features(robot.action_features, ACTION)
@@ -49,7 +54,7 @@ dataset_features = {**action_features, **obs_features}
 
 # Create the dataset
 dataset = LeRobotDataset.create(
-    repo_id=HF_DATASET_ID,
+    repo_id=HF_REPO_ID,
     fps=FPS,
     features=dataset_features,
     robot_type=robot.name,
@@ -57,43 +62,31 @@ dataset = LeRobotDataset.create(
     image_writer_threads=4,
 )
 
-# Build Policy Processors
-preprocessor, postprocessor = make_pre_post_processors(
-    policy_cfg=policy,
-    pretrained_path=HF_MODEL_ID,
-    dataset_stats=dataset.meta.stats,
-    # The inference device is automatically set to match the detected hardware, overriding any previous device settings from training to ensure compatibility.
-    preprocessor_overrides={"device_processor": {"device": str(policy.config.device)}},
-)
-
-# Connect the robot
+# Connect the robot and teleoperator
 # To connect you already should have this script running on LeKiwi: `python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=my_awesome_kiwi`
 robot.connect()
-
-# TODO(Steven): Update this example to use pipelines
-teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
+leader_arm.connect()
+keyboard.connect()
 
 # Initialize the keyboard listener and rerun visualization
 listener, events = init_keyboard_listener()
-init_rerun(session_name="lekiwi_evaluate")
+init_rerun(session_name="lekiwi_record")
 
-if not robot.is_connected:
-    raise ValueError("Robot is not connected!")
+if not robot.is_connected or not leader_arm.is_connected or not keyboard.is_connected:
+    raise ValueError("Robot or teleop is not connected!")
 
-print("Starting evaluate loop...")
+print("Starting record loop...")
 recorded_episodes = 0
 while recorded_episodes < NUM_EPISODES and not events["stop_recording"]:
-    log_say(f"Running inference, recording eval episode {recorded_episodes} of {NUM_EPISODES}")
+    log_say(f"Recording episode {recorded_episodes}")
 
     # Main record loop
     record_loop(
         robot=robot,
         events=events,
         fps=FPS,
-        policy=policy,
-        preprocessor=preprocessor,  # Pass the pre and post policy processors
-        postprocessor=postprocessor,
         dataset=dataset,
+        teleop=[leader_arm, keyboard],
         control_time_s=EPISODE_TIME_SEC,
         single_task=TASK_DESCRIPTION,
         display_data=True,
@@ -111,7 +104,8 @@ while recorded_episodes < NUM_EPISODES and not events["stop_recording"]:
             robot=robot,
             events=events,
             fps=FPS,
-            control_time_s=EPISODE_TIME_SEC,
+            teleop=[leader_arm, keyboard],
+            control_time_s=RESET_TIME_SEC,
             single_task=TASK_DESCRIPTION,
             display_data=True,
             teleop_action_processor=teleop_action_processor,
@@ -133,6 +127,8 @@ while recorded_episodes < NUM_EPISODES and not events["stop_recording"]:
 # Clean up
 log_say("Stop recording")
 robot.disconnect()
+leader_arm.disconnect()
+keyboard.disconnect()
 listener.stop()
 
 dataset.finalize()
