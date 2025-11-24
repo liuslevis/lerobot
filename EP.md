@@ -113,7 +113,7 @@ pip install -e ".[async]"
 
 
 
-# 配置测试摄像头 (host)
+# Test Camera (RP5)
 * cd ~/lerobot/tests && python test_cam.py
 * vim src/lerobot/robots/lekiwi/config_lekiwi.py
 
@@ -121,15 +121,24 @@ pip install -e ".[async]"
 lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/tty.usbmodem5AB01813381 --teleop.id=di
 lerobot-calibrate --robot.type=lekiwi --robot.id=didi
 
-# 启动 leader arm
+# Start Tele Op (PC leader arm)
 python examples/lekiwi/teleoperate.py 
 
-# 启动 host
+# Start host (RP)
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=3600 
 
 
 # Dataset Record 
-python -i examples/lekiwi/record.py
+python -i examples/lekiwi/record_toy.py
+
+- Right arrow key pressed. Exiting loop...
+- Left arrow key pressed. Exiting loop and rerecord the last episode
+- Escape key pressed. Stopping data recording
+- F: slower
+- R: faster
+- ASDW: move
+- Z X: rotate left right
+- Q: quit tele op
 
 # Dataset Upload 
 hf upload davidlau90/lekiwi_toy_pickup_2 ~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_2 --repo-type dataset

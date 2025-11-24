@@ -38,6 +38,11 @@ import draccus
 import grpc
 import torch
 
+import os
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+
+
 from lerobot.policies.factory import get_policy_class, make_pre_post_processors
 from lerobot.processor import (
     PolicyAction,
@@ -193,12 +198,30 @@ class PolicyServer(services_pb2_grpc.AsyncInferenceServicer):
         # Calculate FPS metrics
         fps_metrics = self.fps_tracker.calculate_fps_metrics(obs_timestamp)
 
-        self.logger.debug(
+        self.logger.info(
             f"Received observation #{obs_timestep} | "
             f"Avg FPS: {fps_metrics['avg_fps']:.2f} | "  # fps at which observations are received from client
             f"Target: {fps_metrics['target_fps']:.2f} | "
             f"One-way latency: {(receive_time - obs_timestamp) * 1000:.2f}ms"
         )
+        # XJ debug save obs img
+        # self.logger.info(
+        #     f"obs.wrist.shape {timed_observation.observation['wrist'].shape} |"
+        #     f"obs.front.shape {timed_observation.observation['front'].shape}"
+        # )
+        # from PIL import Image
+        # import numpy as np
+        # for name in ['wrist', 'front']:
+        #     img_array = timed_observation.observation[name]
+        #     if img_array.dtype != np.uint8:
+        #         if img_array.max() <= 1.0:
+        #             img_array = (img_array * 255).astype(np.uint8)
+        #         else:
+        #             img_array = img_array.astype(np.uint8)
+        #     img = Image.fromarray(img_array)
+        #     i = timed_observation.get_timestep()
+        #     img.save(f'obs/{name}_{i}.png')  
+
 
         self.logger.debug(
             f"Server timestamp: {receive_time:.6f} | "
@@ -219,6 +242,10 @@ class PolicyServer(services_pb2_grpc.AsyncInferenceServicer):
         client_id = context.peer()
         self.logger.debug(f"Client {client_id} connected for action streaming")
 
+        # self.logger.info(f"XJ context {context} request {request}")
+        # INFO 2025-11-19 00:24:42 y_server.py:220 XJ context <grpc._server._Context object at 0x79be95c8d030> request 
+        # TODO how to get cfg.robot.type() "lekiwi"
+        
         # Generate action based on the most recent observation and its timestep
         try:
             getactions_starts = time.perf_counter()
