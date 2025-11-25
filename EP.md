@@ -124,8 +124,9 @@ lerobot-calibrate --robot.type=lekiwi --robot.id=didi
 # Start Tele Op (PC leader arm)
 python examples/lekiwi/teleoperate.py 
 
-# Start host (RP)
+# Start Host (RP)
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=3600 
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
 
 
 # Dataset Record 
@@ -189,6 +190,7 @@ python -m lerobot.async_inference.robot_client \
 
 
 # BitaHub A100: 
+```
 pytorch:2.3.1-cuda12.1-cudnn8-py310-ubuntu22.04
 
 # mkdir -p /ssd1t/david/opt/
@@ -206,28 +208,158 @@ echo "  - /ssd1t/david/conda/pkgs" >> ~/.condarc
 conda init
 bash
 cd /ssd1t/david/lerobot
-conda create -y -n lerobot python=3.10
+# conda create -y -n lerobot python=3.10
 conda activate lerobot
-conda install -c conda-forge ffmpeg=6.1.1 -y &
-
-pip install -e ".[lekiwi,pi]"
-git config --global credential.helper store
+# conda install -c conda-forge ffmpeg=6.1.1 -y &
+# pip install -e ".[lekiwi,pi]"
+# git config --global credential.helper store
 export HUGGINGFACE_TOKEN=
+export WANDB_TOKEN=
 export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 export HF_ENDPOINT=https://hf-mirror.com
 hf auth login --token ${HUGGINGFACE_TOKEN} --add-to-git-credential
-wandb login --relogin 
+wandb login --relogin ${WANDB_TOKEN}
+
+# hf download hxdoso/new_frame
 # hf download lerobot/pi05_base 
 # hf download google/paligemma-3b-pt-224 --repo-type model
+```
 
 # Train: π0.5 A100
+Notes: 
+- pi05 batch_size=32, gpu_mem=41GB
+- pi05 batch_size=64, gpu_mem=51GB
+- pi05 batch_size=128, gpu_mem=61GB 
+- pi05 batch_size=168, gpu_mem=73GB 
+- pi05 batch_size=256, gpu_mem>80GB OOM
+
+```
 export HF_HUB_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export HF_ENDPOINT=https://hf-mirror.com
 export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
+```
 
+## dataset hxdoso
+```
+screen
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/MrXuan/hxdoso \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_hxdoso \
+    --job_name=pi05_training \
+    --policy.repo_id=lerobot/pi05_base \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --steps=3000 \
+    --policy.device=cuda \
+    --batch_size=128 \
+    --log_freq=10 \
+
+INFO 2025-11-25 18:29:10 ot_train.py:351 step:10.0 smpl:1K ep:3 epch:0.05 loss:0.287 grdn:3.301 lr:1.6e-06 updt_s:13.567 data_s:1.471
+INFO 2025-11-25 18:31:18 ot_train.py:351 step:20.0 smpl:3K ep:5 epch:0.10 loss:0.248 grdn:2.559 lr:4.1e-06 updt_s:12.702 data_s:0.060
+INFO 2025-11-25 18:33:25 ot_train.py:351 step:30.0 smpl:4K ep:8 epch:0.15 loss:0.195 grdn:1.244 lr:6.6e-06 updt_s:12.703 data_s:0.060
+INFO 2025-11-25 18:35:33 ot_train.py:351 step:40.0 smpl:5K ep:10 epch:0.20 loss:0.166 grdn:0.850 lr:9.0e-06 updt_s:12.706 data_s:0.058
+INFO 2025-11-25 18:37:41 ot_train.py:351 step:50.0 smpl:6K ep:13 epch:0.25 loss:0.141 grdn:0.861 lr:1.2e-05 updt_s:12.702 data_s:0.056
+INFO 2025-11-25 18:39:48 ot_train.py:351 step:60.0 smpl:8K ep:15 epch:0.30 loss:0.110 grdn:0.788 lr:1.4e-05 updt_s:12.704 data_s:0.058
+INFO 2025-11-25 18:41:56 ot_train.py:351 step:70.0 smpl:9K ep:18 epch:0.35 loss:0.103 grdn:0.934 lr:1.6e-05 updt_s:12.709 data_s:0.056
+INFO 2025-11-25 18:44:04 ot_train.py:351 step:80.0 smpl:10K ep:20 epch:0.40 loss:0.094 grdn:0.923 lr:1.9e-05 updt_s:12.714 data_s:0.056
+INFO 2025-11-25 18:46:11 ot_train.py:351 step:90.0 smpl:12K ep:23 epch:0.45 loss:0.084 grdn:0.931 lr:2.1e-05 updt_s:12.705 data_s:0.057
+INFO 2025-11-25 18:48:19 ot_train.py:351 step:100.0 smpl:13K ep:25 epch:0.50 loss:0.076 grdn:0.889 lr:2.4e-05 updt_s:12.702 data_s:0.057
+INFO 2025-11-25 18:50:27 ot_train.py:351 step:110.0 smpl:14K ep:28 epch:0.55 loss:0.070 grdn:0.829 lr:2.5e-05 updt_s:12.703 data_s:0.057
+INFO 2025-11-25 18:52:34 ot_train.py:351 step:120.0 smpl:15K ep:30 epch:0.60 loss:0.067 grdn:0.785 lr:2.5e-05 updt_s:12.705 data_s:0.058
+INFO 2025-11-25 18:54:42 ot_train.py:351 step:130.0 smpl:17K ep:33 epch:0.65 loss:0.064 grdn:0.851 lr:2.5e-05 updt_s:12.703 data_s:0.058
+INFO 2025-11-25 18:56:50 ot_train.py:351 step:140.0 smpl:18K ep:35 epch:0.70 loss:0.060 grdn:0.734 lr:2.5e-05 updt_s:12.703 data_s:0.056
+INFO 2025-11-25 18:58:57 ot_train.py:351 step:150.0 smpl:19K ep:38 epch:0.75 loss:0.058 grdn:0.721 lr:2.5e-05 updt_s:12.702 data_s:0.057
+INFO 2025-11-25 19:01:05 ot_train.py:351 step:160.0 smpl:20K ep:40 epch:0.80 loss:0.055 grdn:0.668 lr:2.5e-05 updt_s:12.716 data_s:0.057
+INFO 2025-11-25 19:03:13 ot_train.py:351 step:170.0 smpl:22K ep:43 epch:0.85 loss:0.056 grdn:0.622 lr:2.5e-05 updt_s:12.703 data_s:0.057
+INFO 2025-11-25 19:05:20 ot_train.py:351 step:180.0 smpl:23K ep:45 epch:0.90 loss:0.055 grdn:0.642 lr:2.5e-05 updt_s:12.701 data_s:0.056
+```
+
+
+
+## dataset 0123 (1 car, clear background, 85 episodes)
+```
+screen
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_toy_0123_again \
+    --job_name=pi05_training \
+    --policy.repo_id=davidlau90/pi05_toy_0123_again \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=false \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=50 \
+    --batch_size=168 \
+    --save_freq=200 
+INFO 2025-11-25 20:36:46 ot_train.py:324 Start offline training on a fixed dataset
+INFO 2025-11-25 20:50:39 ot_train.py:351 step:50.0 smpl:8K ep:12 epch:0.14 loss:4.138 grdn:10.525 lr:6.6e-07 updt_s:16.329 data_s:0.335
+    
+
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_toy_0123 \
+    --job_name=pi05_toy_0123 \
+    --policy.repo_id=davidlau90/pi05_toy_0123 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=false \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=50 \
+    --batch_size=168 \
+    --save_freq=200 \
+    --resume=true \
+    --config_path=outputs/pi05_toy_0123/checkpoints/last/pretrained_model/train_config.json \
+    --optimizer.lr 1.11e-4 
+    # --policy.optimizer_lr 2.5e-04 \ # not work
+    # --policy.optimizer_lr 2.5e-05 \ # orig 
+
+#batch size 32
+INFO 2025-11-24 15:06:27 ot_train.py:351 step:200 smpl:6K ep:9 epch:0.11 loss:1.134 grdn:2.458 lr:2.5e-05 updt_s:3.293 data_s:0.015
+INFO 2025-11-24 15:23:01 ot_train.py:351 step:500 smpl:16K ep:23 epch:0.28 loss:0.929 grdn:1.496 lr:2.4e-05 updt_s:3.292 data_s:0.016
+INFO 2025-11-24 16:34:45 ot_train.py:351 step:2K smpl:58K ep:84 epch:0.99 loss:0.873 grdn:1.461 lr:1.1e-05 updt_s:3.291 data_s:0.016
+INFO 2025-11-24 19:08:40 ot_train.py:351 step:3K smpl:109K ep:159 epch:1.88 loss:0.874 grdn:1.493 lr:2.4e-05 updt_s:3.319 data_s:0.016
+INFO 2025-11-24 20:04:15 ot_train.py:351 step:4K smpl:141K ep:206 epch:2.43 loss:0.873 grdn:1.517 lr:2.4e-05 updt_s:3.316 data_s:0.015
+INFO 2025-11-24 20:59:54 ot_train.py:351 step:5K smpl:173K ep:253 epch:2.98 loss:0.875 grdn:1.526 lr:2.3e-05 updt_s:3.316 data_s:0.016
+INFO 2025-11-24 21:11:01 ot_train.py:351 step:6K smpl:179K ep:263 epch:3.09 loss:0.852 grdn:1.477 lr:2.3e-05 updt_s:3.317 data_s:0.016
+INFO 2025-11-24 21:55:54 ot_train.py:351 step:6K smpl:205K ep:300 epch:3.53 loss:0.871 grdn:1.518 lr:2.3e-05 updt_s:3.317 data_s:0.016
+INFO 2025-11-24 22:34:55 ot_train.py:351 step:6.2K smpl:397K ep:581 epch:6.84 loss:0.873 grdn:1.071 lr:2.3e-05 updt_s:6.374 data_s:0.057
+INFO 2025-11-24 22:56:14 ot_train.py:351 step:6.4K smpl:410K ep:600 epch:7.06 loss:0.860 grdn:1.095 lr:2.3e-05 updt_s:6.360 data_s:0.030
+INFO 2025-11-24 23:17:32 ot_train.py:351 step:6.6K smpl:422K ep:619 epch:7.28 loss:0.866 grdn:1.072 lr:2.2e-05 updt_s:6.360 data_s:0.029
+#batch size 168 ?
+INFO 2025-11-25 00:49:53 ot_train.py:351 step:6.2K smpl:1M ep:2K epch:17.95 loss:0.868 grdn:0.687 lr:2.3e-05 updt_s:16.245 data_s:0.120
+INFO 2025-11-25 01:44:12 ot_train.py:351 step:6.4K smpl:1M ep:2K epch:18.53 loss:0.867 grdn:0.700 lr:2.3e-05 updt_s:16.175 data_s:0.117 
+INFO 2025-11-25 02:39:54 ot_train.py:351 step:6.6K smpl:1M ep:2K epch:19.11 loss:0.865 grdn:0.698 lr:2.2e-05 updt_s:16.632 data_s:0.074 stopped
+Traceback (most recent call last):
+  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 448, in <module>
+  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 444, in main
+  File "/ssd1t/david/lerobot/src/lerobot/configs/parser.py", line 233, in wrapper_inner
+  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 332, in train
+  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 107, in update_policy
+  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/optimizer.py", line 146, in step
+  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/utils/imports.py", line 126, in is_lomo_available
+  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/utils/imports.py", line 52, in _is_package_available
+  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/importlib/util.py", line 103, in find_spec
+  File "<frozen importlib._bootstrap>", line 945, in _find_spec
+  File "<frozen importlib._bootstrap_external>", line 1439, in find_spec
+  File "<frozen importlib._bootstrap_external>", line 1411, in _get_spec
+  File "<frozen importlib._bootstrap_external>", line 1548, in find_spec
+  File "<frozen importlib._bootstrap_external>", line 1591, in _fill_cache
+OSError: [Errno 5] Input/output error: '/ssd1t/david/lerobot/src/lerobot/scripts'
+```
 
 # dataset 457 (25)
 python src/lerobot/scripts/lerobot_train.py \

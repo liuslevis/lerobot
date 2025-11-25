@@ -27,16 +27,16 @@ from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
 from lerobot.utils.visualization_utils import init_rerun
 
-NUM_EPISODES = 50
+NUM_EPISODES = 100
 FPS = 30
-EPISODE_TIME_SEC = 100
+EPISODE_TIME_SEC = 120
 RESET_TIME_SEC = 1
 TASK_DESCRIPTION = "lewiki toy pickup"
-HF_REPO_ID = "/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_000"
+HF_REPO_ID = "/Users/david/dev/lerobot/datasets/davidlau90/lekiwi_toy_3"
 
 # Create the robot and teleoperator configurations
 robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
-leader_arm_config = SO101LeaderConfig(port="/dev/ttyACM0", id="di")
+leader_arm_config = SO101LeaderConfig(port="/dev/tty.usbmodem5AB01813381", id="di")
 keyboard_config = KeyboardTeleopConfig()
 
 # Initialize the robot and teleoperator
