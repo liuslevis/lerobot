@@ -242,6 +242,107 @@ export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 ```
 
+
+## dataset 0123 (1 car, clear background, 85 episodes)
+```
+
+# eval on 4090 
+python src/lerobot/scripts/lerobot_train_eval_only.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_toy_0123_again_eval \
+    --job_name=pi05_training \
+    --policy.repo_id=davidlau90/pi05_toy_0123_again \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=false \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=500 \
+    --batch_size=16 \
+    --save_freq=200000 \
+    --resume=true \
+    --config_path=outputs/pi05_toy_0123_again/checkpoints/001200/pretrained_model/train_config.json 
+INFO 2025-11-26 11:35:18 ot_train.py:351 step:2.0K smpl:32K ep:47 epch:0.55 loss:0.880 grdn:0.000 lr:2.5e-05 updt_s:0.522 data_s:0.020 <- 001800
+INFO 2025-11-26 11:42:01 val_only.py:351 step:1.5K smpl:24K ep:35 epch:0.41 loss:0.885 grdn:0.000 lr:2.5e-05 updt_s:0.521 data_s:0.017 <- 001200
+
+
+screen
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_toy_0123_again \
+    --job_name=pi05_training \
+    --policy.repo_id=davidlau90/pi05_toy_0123_again \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=false \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=50 \
+    --batch_size=168 \
+    --save_freq=200 \
+    --resume=true \
+    --config_path=outputs/pi05_toy_0123_again/checkpoints/last/pretrained_model/train_config.json 
+
+INFO 2025-11-25 20:36:46 ot_train.py:324 Start offline training on a fixed dataset
+INFO 2025-11-25 20:50:39 ot_train.py:351 step:50.0 smpl:8K ep:12 epch:0.14 loss:4.138 grdn:10.525 lr:6.6e-07 updt_s:16.329 data_s:0.335
+INFO 2025-11-25 21:04:16 ot_train.py:351 step:100.0 smpl:17K ep:25 epch:0.29 loss:4.162 grdn:10.594 lr:1.9e-06 updt_s:16.254 data_s:0.075
+INFO 2025-11-25 21:17:52 ot_train.py:351 step:150.0 smpl:25K ep:37 epch:0.43 loss:3.901 grdn:9.910 lr:3.2e-06 updt_s:16.254 data_s:0.074
+INFO 2025-11-25 21:17:52 ot_train.py:351 step:150.0 smpl:25K ep:37 epch:0.43 loss:3.901 grdn:9.910 lr:3.2e-06 updt_s:16.254 data_s:0.074
+INFO 2025-11-25 21:31:29 ot_train.py:351 step:200.0 smpl:34K ep:49 epch:0.58 loss:3.764 grdn:9.701 lr:4.4e-06 updt_s:16.257 data_s:0.075 --ckpg
+INFO 2025-11-25 21:45:30 ot_train.py:351 step:250.0 smpl:42K ep:62 epch:0.72 loss:3.367 grdn:8.707 lr:5.7e-06 updt_s:16.256 data_s:0.075
+INFO 2025-11-25 21:59:07 ot_train.py:351 step:300.0 smpl:50K ep:74 epch:0.87 loss:2.808 grdn:7.386 lr:6.9e-06 updt_s:16.258 data_s:0.073
+INFO 2025-11-25 22:12:47 ot_train.py:351 step:350.0 smpl:59K ep:86 epch:1.01 loss:2.121 grdn:5.418 lr:8.2e-06 updt_s:16.057 data_s:0.340
+INFO 2025-11-25 22:26:24 ot_train.py:351 step:400.0 smpl:67K ep:98 epch:1.16 loss:1.586 grdn:3.698 lr:9.4e-06 updt_s:16.258 data_s:0.074 --ckpt
+INFO 2025-11-25 22:40:26 ot_train.py:351 step:450.0 smpl:76K ep:111 epch:1.30 loss:1.262 grdn:2.664 lr:1.1e-05 updt_s:16.253 data_s:0.076
+INFO 2025-11-25 22:54:02 ot_train.py:351 step:500.0 smpl:84K ep:123 epch:1.45 loss:1.046 grdn:1.398 lr:1.2e-05 updt_s:16.255 data_s:0.074
+INFO 2025-11-25 23:20:46 ot_train.py:351 step:450.0 smpl:76K ep:111 epch:1.30 loss:1.249 grdn:2.572 lr:1.1e-05 updt_s:16.359 data_s:0.275 --retry
+INFO 2025-11-25 23:34:25 ot_train.py:351 step:500.0 smpl:84K ep:123 epch:1.45 loss:1.039 grdn:1.399 lr:1.2e-05 updt_s:16.289 data_s:0.075
+
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_toy_0123 \
+    --job_name=pi05_toy_0123 \
+    --policy.repo_id=davidlau90/pi05_toy_0123 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=false \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=50 \
+    --batch_size=168 \
+    --save_freq=200 \
+    --resume=true \
+    --config_path=outputs/pi05_toy_0123/checkpoints/last/pretrained_model/train_config.json \
+    --optimizer.lr 1.11e-4 
+    # --policy.optimizer_lr 2.5e-04 \ # not work
+    # --policy.optimizer_lr 2.5e-05 \ # orig 
+
+
+INFO 2025-11-24 15:06:27 ot_train.py:351 step:200 smpl:6K ep:9 epch:0.11 loss:1.134 grdn:2.458 lr:2.5e-05 updt_s:3.293 data_s:0.015 <- batch size 32
+INFO 2025-11-24 15:23:01 ot_train.py:351 step:500 smpl:16K ep:23 epch:0.28 loss:0.929 grdn:1.496 lr:2.4e-05 updt_s:3.292 data_s:0.016
+INFO 2025-11-24 16:34:45 ot_train.py:351 step:2K smpl:58K ep:84 epch:0.99 loss:0.873 grdn:1.461 lr:1.1e-05 updt_s:3.291 data_s:0.016
+INFO 2025-11-24 19:08:40 ot_train.py:351 step:3K smpl:109K ep:159 epch:1.88 loss:0.874 grdn:1.493 lr:2.4e-05 updt_s:3.319 data_s:0.016
+INFO 2025-11-24 20:04:15 ot_train.py:351 step:4K smpl:141K ep:206 epch:2.43 loss:0.873 grdn:1.517 lr:2.4e-05 updt_s:3.316 data_s:0.015
+INFO 2025-11-24 20:59:54 ot_train.py:351 step:5K smpl:173K ep:253 epch:2.98 loss:0.875 grdn:1.526 lr:2.3e-05 updt_s:3.316 data_s:0.016
+INFO 2025-11-24 21:11:01 ot_train.py:351 step:6K smpl:179K ep:263 epch:3.09 loss:0.852 grdn:1.477 lr:2.3e-05 updt_s:3.317 data_s:0.016
+INFO 2025-11-24 21:55:54 ot_train.py:351 step:6K smpl:205K ep:300 epch:3.53 loss:0.871 grdn:1.518 lr:2.3e-05 updt_s:3.317 data_s:0.016
+INFO 2025-11-24 22:34:55 ot_train.py:351 step:6.2K smpl:397K ep:581 epch:6.84 loss:0.873 grdn:1.071 lr:2.3e-05 updt_s:6.374 data_s:0.057 <- batch size 168
+INFO 2025-11-24 22:56:14 ot_train.py:351 step:6.4K smpl:410K ep:600 epch:7.06 loss:0.860 grdn:1.095 lr:2.3e-05 updt_s:6.360 data_s:0.030
+INFO 2025-11-24 23:17:32 ot_train.py:351 step:6.6K smpl:422K ep:619 epch:7.28 loss:0.866 grdn:1.072 lr:2.2e-05 updt_s:6.360 data_s:0.029
+INFO 2025-11-25 00:49:53 ot_train.py:351 step:6.2K smpl:1M ep:2K epch:17.95 loss:0.868 grdn:0.687 lr:2.3e-05 updt_s:16.245 data_s:0.120
+INFO 2025-11-25 01:44:12 ot_train.py:351 step:6.4K smpl:1M ep:2K epch:18.53 loss:0.867 grdn:0.700 lr:2.3e-05 updt_s:16.175 data_s:0.117 
+INFO 2025-11-25 02:39:54 ot_train.py:351 step:6.6K smpl:1M ep:2K epch:19.11 loss:0.865 grdn:0.698 lr:2.2e-05 updt_s:16.632 data_s:0.074 
+```
+
 ## dataset hxdoso
 ```
 screen
@@ -281,87 +382,7 @@ INFO 2025-11-25 19:05:20 ot_train.py:351 step:180.0 smpl:23K ep:45 epch:0.90 los
 ```
 
 
-
-## dataset 0123 (1 car, clear background, 85 episodes)
-```
-screen
-python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
-    --policy.type=pi05 \
-    --output_dir=./outputs/pi05_toy_0123_again \
-    --job_name=pi05_training \
-    --policy.repo_id=davidlau90/pi05_toy_0123_again \
-    --policy.pretrained_path=lerobot/pi05_base \
-    --policy.compile_model=true \
-    --policy.gradient_checkpointing=true \
-    --wandb.enable=false \
-    --policy.dtype=bfloat16 \
-    --policy.device=cuda \
-    --steps=60000 \
-    --log_fre=50 \
-    --batch_size=168 \
-    --save_freq=200 
-INFO 2025-11-25 20:36:46 ot_train.py:324 Start offline training on a fixed dataset
-INFO 2025-11-25 20:50:39 ot_train.py:351 step:50.0 smpl:8K ep:12 epch:0.14 loss:4.138 grdn:10.525 lr:6.6e-07 updt_s:16.329 data_s:0.335
-    
-
-python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
-    --policy.type=pi05 \
-    --output_dir=./outputs/pi05_toy_0123 \
-    --job_name=pi05_toy_0123 \
-    --policy.repo_id=davidlau90/pi05_toy_0123 \
-    --policy.pretrained_path=lerobot/pi05_base \
-    --policy.compile_model=true \
-    --policy.gradient_checkpointing=true \
-    --wandb.enable=false \
-    --policy.dtype=bfloat16 \
-    --policy.device=cuda \
-    --steps=60000 \
-    --log_fre=50 \
-    --batch_size=168 \
-    --save_freq=200 \
-    --resume=true \
-    --config_path=outputs/pi05_toy_0123/checkpoints/last/pretrained_model/train_config.json \
-    --optimizer.lr 1.11e-4 
-    # --policy.optimizer_lr 2.5e-04 \ # not work
-    # --policy.optimizer_lr 2.5e-05 \ # orig 
-
-#batch size 32
-INFO 2025-11-24 15:06:27 ot_train.py:351 step:200 smpl:6K ep:9 epch:0.11 loss:1.134 grdn:2.458 lr:2.5e-05 updt_s:3.293 data_s:0.015
-INFO 2025-11-24 15:23:01 ot_train.py:351 step:500 smpl:16K ep:23 epch:0.28 loss:0.929 grdn:1.496 lr:2.4e-05 updt_s:3.292 data_s:0.016
-INFO 2025-11-24 16:34:45 ot_train.py:351 step:2K smpl:58K ep:84 epch:0.99 loss:0.873 grdn:1.461 lr:1.1e-05 updt_s:3.291 data_s:0.016
-INFO 2025-11-24 19:08:40 ot_train.py:351 step:3K smpl:109K ep:159 epch:1.88 loss:0.874 grdn:1.493 lr:2.4e-05 updt_s:3.319 data_s:0.016
-INFO 2025-11-24 20:04:15 ot_train.py:351 step:4K smpl:141K ep:206 epch:2.43 loss:0.873 grdn:1.517 lr:2.4e-05 updt_s:3.316 data_s:0.015
-INFO 2025-11-24 20:59:54 ot_train.py:351 step:5K smpl:173K ep:253 epch:2.98 loss:0.875 grdn:1.526 lr:2.3e-05 updt_s:3.316 data_s:0.016
-INFO 2025-11-24 21:11:01 ot_train.py:351 step:6K smpl:179K ep:263 epch:3.09 loss:0.852 grdn:1.477 lr:2.3e-05 updt_s:3.317 data_s:0.016
-INFO 2025-11-24 21:55:54 ot_train.py:351 step:6K smpl:205K ep:300 epch:3.53 loss:0.871 grdn:1.518 lr:2.3e-05 updt_s:3.317 data_s:0.016
-INFO 2025-11-24 22:34:55 ot_train.py:351 step:6.2K smpl:397K ep:581 epch:6.84 loss:0.873 grdn:1.071 lr:2.3e-05 updt_s:6.374 data_s:0.057
-INFO 2025-11-24 22:56:14 ot_train.py:351 step:6.4K smpl:410K ep:600 epch:7.06 loss:0.860 grdn:1.095 lr:2.3e-05 updt_s:6.360 data_s:0.030
-INFO 2025-11-24 23:17:32 ot_train.py:351 step:6.6K smpl:422K ep:619 epch:7.28 loss:0.866 grdn:1.072 lr:2.2e-05 updt_s:6.360 data_s:0.029
-#batch size 168 ?
-INFO 2025-11-25 00:49:53 ot_train.py:351 step:6.2K smpl:1M ep:2K epch:17.95 loss:0.868 grdn:0.687 lr:2.3e-05 updt_s:16.245 data_s:0.120
-INFO 2025-11-25 01:44:12 ot_train.py:351 step:6.4K smpl:1M ep:2K epch:18.53 loss:0.867 grdn:0.700 lr:2.3e-05 updt_s:16.175 data_s:0.117 
-INFO 2025-11-25 02:39:54 ot_train.py:351 step:6.6K smpl:1M ep:2K epch:19.11 loss:0.865 grdn:0.698 lr:2.2e-05 updt_s:16.632 data_s:0.074 stopped
-Traceback (most recent call last):
-  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 448, in <module>
-  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 444, in main
-  File "/ssd1t/david/lerobot/src/lerobot/configs/parser.py", line 233, in wrapper_inner
-  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 332, in train
-  File "/ssd1t/david/lerobot/src/lerobot/scripts/lerobot_train.py", line 107, in update_policy
-  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/optimizer.py", line 146, in step
-  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/utils/imports.py", line 126, in is_lomo_available
-  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/site-packages/accelerate/utils/imports.py", line 52, in _is_package_available
-  File "/ssd1t/david/conda/env/lerobot/lib/python3.10/importlib/util.py", line 103, in find_spec
-  File "<frozen importlib._bootstrap>", line 945, in _find_spec
-  File "<frozen importlib._bootstrap_external>", line 1439, in find_spec
-  File "<frozen importlib._bootstrap_external>", line 1411, in _get_spec
-  File "<frozen importlib._bootstrap_external>", line 1548, in find_spec
-  File "<frozen importlib._bootstrap_external>", line 1591, in _fill_cache
-OSError: [Errno 5] Input/output error: '/ssd1t/david/lerobot/src/lerobot/scripts'
-```
-
-# dataset 457 (25)
+## dataset 457 (25)
 python src/lerobot/scripts/lerobot_train.py \
     --dataset.repo_id=davidlau90/lekiwi_toy_pickup_457 \
     --dataset.root=datasets/davidlau90/lekiwi_toy_pickup_457 \
@@ -379,7 +400,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --log_fre=50 \
     --batch_size=32
 
-# dataset 7  good
+## dataset 7  good
 INFO 2025-11-21 13:17:17 ot_train.py:351 step:200 smpl:6K ep:11 epch:1.07 loss:2.404 grdn:6.790 lr:1.9e-05 updt_s:3.305 data_s:0.056
 INFO 2025-11-21 14:03:40 ot_train.py:351 step:100 smpl:3K ep:5 epch:0.53 loss:3.235 grdn:9.501 lr:1.9e-05 updt_s:5.944 data_s:0.038
 INFO 2025-11-21 14:09:47 ot_train.py:351 step:150 smpl:5K ep:8 epch:0.80 loss:1.533 grdn:4.547 lr:2.5e-05 updt_s:7.297 data_s:0.040
@@ -405,7 +426,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --batch_size=32
 
 
-# dataset 5  good
+## dataset 5  good
 INFO 2025-11-21 14:47:06 ot_train.py:351 step:50 smpl:2K ep:2 epch:0.36 loss:3.888 grdn:11.134 lr:6.6e-06 updt_s:7.320 data_s:0.109
 python src/lerobot/scripts/lerobot_train.py \
     --dataset.repo_id=davidlau90/lekiwi_toy_pickup_5 \
@@ -424,7 +445,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --log_fre=50 \
     --batch_size=32
 
-# dataset 6 bad: 
+## dataset 6 bad: 
 INFO 2025-11-21 14:24:09 ot_train.py:351 step:200 smpl:6K ep:5 epch:0.16 loss:1741504370847283937280.000 grdn:10679317590.819 lr:1.9e-05 updt_s:7.291 data_s:0.058
 python src/lerobot/scripts/lerobot_train.py \
     --dataset.repo_id=davidlau90/lekiwi_toy_pickup_6 \
@@ -442,7 +463,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --steps=3000 \
     --batch_size=32
 
-# dataset 4 good: INFO 2025-11-21 13:38:11 ot_train.py:351 step:200 smpl:6K ep:6 epch:0.10 loss:509752646492880764928.000 grdn:2301886843.971 lr:1.9e-05 updt_s:4.771 data_s:0.044
+## dataset 4 good: INFO 2025-11-21 13:38:11 ot_train.py:351 step:200 smpl:6K ep:6 epch:0.10 loss:509752646492880764928.000 grdn:2301886843.971 lr:1.9e-05 updt_s:4.771 data_s:0.044
 python src/lerobot/scripts/lerobot_train.py \
     --dataset.repo_id=davidlau90/lekiwi_toy_pickup_4 \
     --dataset.root=datasets/davidlau90/lekiwi_toy_pickup_4 \
@@ -528,7 +549,7 @@ AutoDL H20 96G: Too Slow
 
 
 
-# Clash Proxy (AutoDL 不能用）
+# Clash Proxy (AutoDL NA）
 git clone --branch master --depth 1 https://gh-proxy.com/https://github.com/nelvko/clash-for-linux-install.git 
 cd clash-for-linux-install
 sudo bash install.sh # https://45.137.181.44/link/2b3j4LBfzz25djGQ?clash=1
