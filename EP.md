@@ -1,3 +1,8 @@
+
+# TODO
+[] Ubuntu Record / Inference video Play Slow, maybe try cuda decode https://github.com/huggingface/lerobot/pull/913/files
+[] Learn 1 Grab -> 2 Placement
+
 # RP5 Sync
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
 
@@ -125,8 +130,7 @@ lerobot-calibrate --robot.type=lekiwi --robot.id=didi
 python examples/lekiwi/teleoperate.py 
 
 # Start Host (RP)
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=3600 
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 15}}"
 
 
 # Dataset Record 
@@ -167,23 +171,30 @@ pip install --pre torch torchvision torchaudio --index-url https://download.pyto
 
 
 
-# Async Policy Server Start
+# Async Policy Server Start PC
 python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
 
-# Async Client Start
+# Async Client Start RP5
+export ACT_PER_CHUNK=50
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model
+
+export ACT_PER_CHUNK=2
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/000200/pretrained_model # grab robot itself
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab
+
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
     --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\"
-, width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
-, width: 640, height: 480, fps: 30}}" \
+, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
+, width: 640, height: 480, fps: 15}}" \
     --robot.id=didi \
     --task="pick up toys\n" \
     --server_address=192.168.0.78:9999 \
     --policy_type=pi05 \
-    --pretrained_name_or_path=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model \
+    --pretrained_name_or_path=$CKPT \
     --policy_device=cuda \
-    --actions_per_chunk=50 \
+    --actions_per_chunk=${ACT_PER_CHUNK} \
     --chunk_size_threshold=0.5 \
     --aggregate_fn_name=weighted_average \
     --debug_visualize_queue_size=True
