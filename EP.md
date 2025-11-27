@@ -157,10 +157,12 @@ python -i examples/lekiwi/record_toy.py
 hf upload davidlau90/lekiwi_toy_pickup_2 ~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_2 --repo-type dataset
 
 训练数据路径：
-~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_1 # 10 次 移动抓放
-~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup # 20 次 固定位置抓放后移动
-~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_simple # 单一物品固定抓放，不移动
-
+```
+davidlau90/lekiwi_toy_pickup_1 # 10 次 移动抓放
+davidlau90/lekiwi_toy_pickup # 20 次 固定位置抓放后移动
+davidlau90/lekiwi_toy_pickup_simple # 单一物品固定抓放，不移动
+davidlau90/grab_toy_1 # 抓小车 50次 不移动
+```
 
 
 
@@ -174,10 +176,36 @@ python lerobot_dataset_viz.py
 
 
 # PC 5080 sm120 support
-pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+pip uninstall torch torchcodec torchvision
+pip install torch==2.7	torchcodec==0.5 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# Freeze
+
+PC 5080 16G OOM
+```
+python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_pickup_457 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=1
+```
+
+BitaHub 
+- 4090 24G OOM
+- A100 training batch_size=1
+    - fully finetune:  33.8G (3.6B/3.6B)
+    - freeze paligema: 30.4G (3.2B/3.6B), saving ~ 8x0.4 GB RAM
 
 
+```
+python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=168
 
+INFO 2025-11-28 01:25:46 ot_train.py:267 Effective batch size: 1 x 1 = 1
+INFO 2025-11-28 01:25:46 ot_train.py:268 num_learnable_params=3204315168 (3B)
+INFO 2025-11-28 01:25:46 ot_train.py:269 num_total_params=3616757520 (4B)
+
+
+INFO 2025-11-28 01:31:15 ot_train.py:267 Effective batch size: 1 x 1 = 1
+INFO 2025-11-28 01:31:15 ot_train.py:268 num_learnable_params=3616757520 (4B)
+INFO 2025-11-28 01:31:15 ot_train.py:269 num_total_params=3616757520 (4B)
+
+```
 
 # Async Policy Server Start PC
 python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
@@ -574,12 +602,11 @@ python src/lerobot/scripts/lerobot_train.py \
     --batch_size=32
 
 python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=davidlau90/lekiwi_toy_pickup_1 \
-    --dataset.root=datasets/davidlau90/lekiwi_toy_pickup_1 \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_pickup_1 \
     --policy.type=pi05 \
-    --output_dir=./outputs/pi05_training_1 \
+    --output_dir=./outputs/test \
     --job_name=pi05_training \
-    --policy.repo_id=davidlau90/lekiwi_pi05_1 \
+    --policy.repo_id=davidlau90/test \
     --policy.pretrained_path=lerobot/pi05_base \
     --policy.compile_model=true \
     --policy.gradient_checkpointing=true \
@@ -587,7 +614,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --policy.dtype=bfloat16 \
     --policy.device=cuda \
     --steps=3000 \
-    --batch_size=32
+    --batch_size=1
 
 rm -rf outputs/pi05_training_2 && \
 python src/lerobot/scripts/lerobot_train.py \
