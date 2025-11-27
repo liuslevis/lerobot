@@ -190,6 +190,9 @@ export ACT_PER_CHUNK=2
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/000200/pretrained_model # grab robot itself
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab
 
+export ACT_PER_CHUNK=2
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model # still cannot grab
+
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
@@ -291,6 +294,30 @@ INFO 2025-11-27 01:35:39 ot_train.py:267 Effective batch size: 168 x 1 = 168
 INFO 2025-11-27 01:35:39 ot_train.py:268 num_learnable_params=3616757520 (4B)
 INFO 2025-11-27 01:35:39 ot_train.py:269 num_total_params=3616757520 (4B)
 INFO 2025-11-27 01:35:39 ot_train.py:324 Start offline training on a fixed dataset
+INFO 2025-11-27 01:49:30 ot_train.py:351 step:50.0 smpl:8K ep:19 epch:0.37 loss:4.726 grdn:11.636 lr:6.6e-07 updt_s:16.322 data_s:0.281
+INFO 2025-11-27 02:03:07 ot_train.py:351 step:100.0 smpl:17K ep:37 epch:0.75 loss:4.775 grdn:11.747 lr:1.9e-06 updt_s:16.257 data_s:0.075
+INFO 2025-11-27 02:17:55 ot_train.py:351 step:150.0 smpl:25K ep:56 epch:1.12 loss:4.498 grdn:11.069 lr:3.2e-06 updt_s:16.153 data_s:0.256
+INFO 2025-11-27 02:31:31 ot_train.py:351 step:200.0 smpl:34K ep:75 epch:1.50 loss:4.321 grdn:10.657 lr:4.4e-06 updt_s:16.251 data_s:0.075
+INFO 2025-11-27 02:46:04 ot_train.py:351 step:250.0 smpl:42K ep:94 epch:1.87 loss:3.863 grdn:9.582 lr:5.7e-06 updt_s:16.250 data_s:0.075
+INFO 2025-11-27 02:59:44 ot_train.py:351 step:300.0 smpl:50K ep:112 epch:2.24 loss:3.312 grdn:8.300 lr:6.9e-06 updt_s:16.135 data_s:0.248
+INFO 2025-11-27 03:14:21 ot_train.py:351 step:350.0 smpl:59K ep:131 epch:2.62 loss:2.539 grdn:6.252 lr:8.2e-06 updt_s:16.246 data_s:0.075
+INFO 2025-11-27 03:27:57 ot_train.py:351 step:400.0 smpl:67K ep:150 epch:2.99 loss:1.888 grdn:4.286 lr:9.4e-06 updt_s:16.250 data_s:0.074
+INFO 2025-11-27 03:42:41 ot_train.py:351 step:450.0 smpl:76K ep:168 epch:3.37 loss:1.494 grdn:3.143 lr:1.1e-05 updt_s:16.134 data_s:0.276
+INFO 2025-11-27 03:56:17 ot_train.py:351 step:500.0 smpl:84K ep:187 epch:3.74 loss:1.197 grdn:1.613 lr:1.2e-05 updt_s:16.252 data_s:0.074
+INFO 2025-11-27 04:10:56 ot_train.py:351 step:550.0 smpl:92K ep:206 epch:4.12 loss:1.096 grdn:0.964 lr:1.3e-05 updt_s:16.136 data_s:0.254
+INFO 2025-11-27 04:24:32 ot_train.py:351 step:600.0 smpl:101K ep:224 epch:4.49 loss:1.055 grdn:0.788 lr:1.4e-05 updt_s:16.255 data_s:0.074
+INFO 2025-11-27 04:39:00 ot_train.py:351 step:650.0 smpl:109K ep:243 epch:4.86 loss:1.040 grdn:0.747 lr:1.6e-05 updt_s:16.254 data_s:0.073
+INFO 2025-11-27 04:52:38 ot_train.py:351 step:700.0 smpl:118K ep:262 epch:5.24 loss:1.029 grdn:0.779 lr:1.7e-05 updt_s:16.136 data_s:0.221
+INFO 2025-11-27 05:07:06 ot_train.py:351 step:750.0 smpl:126K ep:281 epch:5.61 loss:1.020 grdn:0.737 lr:1.8e-05 updt_s:16.249 data_s:0.075
+INFO 2025-11-27 05:20:43 ot_train.py:351 step:800.0 smpl:134K ep:299 epch:5.99 loss:1.005 grdn:0.764 lr:1.9e-05 updt_s:16.258 data_s:0.074
+INFO 2025-11-27 05:35:21 ot_train.py:351 step:850.0 smpl:143K ep:318 epch:6.36 loss:0.999 grdn:0.783 lr:2.1e-05 updt_s:16.136 data_s:0.246
+INFO 2025-11-27 05:48:57 ot_train.py:351 step:900.0 smpl:151K ep:337 epch:6.73 loss:1.002 grdn:0.788 lr:2.2e-05 updt_s:16.255 data_s:0.074
+INFO 2025-11-27 06:03:34 ot_train.py:351 step:950.0 smpl:160K ep:355 epch:7.11 loss:1.004 grdn:0.809 lr:2.3e-05 updt_s:16.138 data_s:0.302
+INFO 2025-11-27 06:17:11 ot_train.py:351 step:1.0K smpl:168K ep:374 epch:7.48 loss:0.991 grdn:0.809 lr:2.4e-05 updt_s:16.255 data_s:0.075
+INFO 2025-11-27 06:31:44 ot_train.py:351 step:1.1K smpl:176K ep:393 epch:7.86 loss:1.001 grdn:0.845 lr:2.5e-05 updt_s:16.253 data_s:0.074
+INFO 2025-11-27 06:45:24 ot_train.py:351 step:1.1K smpl:185K ep:412 epch:8.23 loss:0.992 grdn:0.779 lr:2.5e-05 updt_s:16.141 data_s:0.269
+INFO 2025-11-27 06:59:58 ot_train.py:351 step:1.1K smpl:193K ep:430 epch:8.61 loss:0.994 grdn:0.828 lr:2.5e-05 updt_s:16.260 data_s:0.073
+INFO 2025-11-27 07:13:35 ot_train.py:351 step:1.2K smpl:202K ep:449 epch:8.98 loss:0.994 grdn:0.807 lr:2.5e-05 updt_s:16.260 data_s:0.072
 ```
 
 ## dataset 0123 (1 car, clear background, 85 episodes)
