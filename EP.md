@@ -184,16 +184,17 @@ python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
 
 # Async Client Start RP5
 ```
+export PROMPT="pickup the toy\n"
 export ACT_PER_CHUNK=50
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model
 
 export ACT_PER_CHUNK=2
-export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab (step200 grab itself)
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/000200/pretrained_model # grab robot itself
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab
 
+export PROMPT="grab the toy\n"
 export ACT_PER_CHUNK=2
-export CKPT=/Users/david/dev/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model/
-
-# GPU
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model # still cannot grab
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
@@ -201,47 +202,27 @@ python -m lerobot.async_inference.robot_client \
 , width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
 , width: 640, height: 480, fps: 15}}" \
     --robot.id=didi \
-    --task="pick up toys\n" \
+    --task="${PROMPT}" \
     --server_address=192.168.0.78:9999 \
     --policy_type=pi05 \
     --pretrained_name_or_path=${CKPT} \
-    --policy_device=cuda \
+    --policy_device=cpu \
     --actions_per_chunk=${ACT_PER_CHUNK} \
     --chunk_size_threshold=0.5 \
     --aggregate_fn_name=weighted_average \
     --debug_visualize_queue_size=True
-
-# CPU
-python -m lerobot.async_inference.robot_client \
-    --robot.type=lekiwi \
-    --robot.port=/dev/ttyACM0 \
-    --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\"
-, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
-, width: 640, height: 480, fps: 15}}" \
-    --robot.id=didi \
-    --task="pick up toys\n" \
-    --server_address=192.168.0.22:9999 \
-    --policy_type=pi05 \
-    --pretrained_name_or_path=${CKPT} \
-    --policy_device=mps \
-    --actions_per_chunk=${ACT_PER_CHUNK} \
-    --chunk_size_threshold=0.5 \
-    --aggregate_fn_name=weighted_average \
-    --debug_visualize_queue_size=True
-
 ```
 
 # BitaHub A100: 
+
 ```
 pytorch:2.3.1-cuda12.1-cudnn8-py310-ubuntu22.04
-
 # mkdir -p /ssd1t/david/opt/
 # cd /ssd1t/david/opt
 # tar -cvf opt_conda.tar /opt/conda
 # tar -xvf opt_conda.tar
 mv /opt/conda /opt/conda_bak
 ln -s /ssd1t/david/opt/conda /opt/conda
-
 
 echo "envs_dirs:" >> ~/.condarc
 echo "  - /ssd1t/david/conda/env" >> ~/.condarc
