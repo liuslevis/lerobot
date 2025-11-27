@@ -372,6 +372,28 @@ class PaliGemmaWithExpertModel(
 
         self.to_bfloat16_for_selected_params(precision)
 
+        # TODO XJ pass as param
+        freeze_vision_encoder = False
+        self.freeze_vision_encoder = freeze_vision_encoder
+        self.set_requires_grad()
+
+
+    def set_requires_grad(self):
+        if self.freeze_vision_encoder:
+            self.paligemma.vision_tower.eval()
+            for param in self.paligemma.vision_tower.parameters():
+                param.requires_grad = False
+        else:
+            # To avoid unused params issue with distributed training
+            pass
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+
+        if self.freeze_vision_encoder:
+            self.paligemma.vision_tower.eval()
+
+
     def to_bfloat16_for_selected_params(self, precision: Literal["bfloat16", "float32"] = "bfloat16"):
         if precision == "bfloat16":
             self.to(dtype=torch.bfloat16)
