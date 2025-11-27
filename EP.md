@@ -183,16 +183,17 @@ pip install --pre torch torchvision torchaudio --index-url https://download.pyto
 python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
 
 # Async Client Start RP5
+```
 export ACT_PER_CHUNK=50
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model
 
 export ACT_PER_CHUNK=2
-export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/000200/pretrained_model # grab robot itself
-export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab
+export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab (step200 grab itself)
 
 export ACT_PER_CHUNK=2
-export CKPT=/ssd1t/david/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model # still cannot grab
+export CKPT=/Users/david/dev/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model/
 
+# GPU
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
@@ -203,13 +204,32 @@ python -m lerobot.async_inference.robot_client \
     --task="pick up toys\n" \
     --server_address=192.168.0.78:9999 \
     --policy_type=pi05 \
-    --pretrained_name_or_path=$CKPT \
+    --pretrained_name_or_path=${CKPT} \
     --policy_device=cuda \
     --actions_per_chunk=${ACT_PER_CHUNK} \
     --chunk_size_threshold=0.5 \
     --aggregate_fn_name=weighted_average \
     --debug_visualize_queue_size=True
 
+# CPU
+python -m lerobot.async_inference.robot_client \
+    --robot.type=lekiwi \
+    --robot.port=/dev/ttyACM0 \
+    --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\"
+, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
+, width: 640, height: 480, fps: 15}}" \
+    --robot.id=didi \
+    --task="pick up toys\n" \
+    --server_address=192.168.0.22:9999 \
+    --policy_type=pi05 \
+    --pretrained_name_or_path=${CKPT} \
+    --policy_device=mps \
+    --actions_per_chunk=${ACT_PER_CHUNK} \
+    --chunk_size_threshold=0.5 \
+    --aggregate_fn_name=weighted_average \
+    --debug_visualize_queue_size=True
+
+```
 
 # BitaHub A100: 
 ```
