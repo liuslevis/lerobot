@@ -198,15 +198,15 @@ export CKPT=/ssd1t/david/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrain
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
-    --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\"
-, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
-, width: 640, height: 480, fps: 15}}" \
+    --robot.cameras="{front:{type:opencv,index_or_path:\"/dev/video0\"
+,width:640,height:480,fps:15},wrist:{type:opencv,index_or_path:\"/dev/video2\"
+,width:640,height:480,fps:15}}" \
     --robot.id=didi \
     --task="${PROMPT}" \
     --server_address=192.168.0.78:9999 \
     --policy_type=pi05 \
     --pretrained_name_or_path=${CKPT} \
-    --policy_device=cpu \
+    --policy_device=cuda \
     --actions_per_chunk=${ACT_PER_CHUNK} \
     --chunk_size_threshold=0.5 \
     --aggregate_fn_name=weighted_average \
