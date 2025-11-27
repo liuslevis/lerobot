@@ -26,17 +26,20 @@ from lerobot.utils.constants import ACTION, OBS_STR
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
 from lerobot.utils.visualization_utils import init_rerun
+import platform
 
 NUM_EPISODES = 50
 FPS = 30
 EPISODE_TIME_SEC = 50
 RESET_TIME_SEC = 1
 TASK_DESCRIPTION = "grab the toy"
-HF_REPO_ID = "davidlau90/grab_toy_1"
+HF_REPO_PATH = "/Users/david/dev/lerobot/datasets/davidlau90/grab_toy_1"
+HF_REPO_ID="davidlau90/grab_toy_1"
 
 # Create the robot and teleoperator configurations
 robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
-leader_arm_config = SO101LeaderConfig(port="/dev/ttyACM0", id="di")
+port = "/dev/tty.usbmodem5AB01813381" if platform.system() == 'Darwin' else "/dev/ttyACM0"
+leader_arm_config = SO101LeaderConfig(port=port, id="di")
 keyboard_config = KeyboardTeleopConfig()
 
 # Initialize the robot and teleoperator
@@ -54,7 +57,7 @@ dataset_features = {**action_features, **obs_features}
 
 # Create the dataset
 dataset = LeRobotDataset.create(
-    repo_id=HF_REPO_ID,
+    HF_REPO_PATH,
     fps=FPS,
     features=dataset_features,
     robot_type=robot.name,
@@ -133,3 +136,7 @@ listener.stop()
 
 dataset.finalize()
 dataset.push_to_hub()
+
+from huggingface_hub import HfApi
+hub_api = HfApi()
+hub_api.create_tag(HF_REPO_ID, tag="v3.0", repo_type="dataset")

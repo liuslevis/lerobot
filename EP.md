@@ -3,6 +3,14 @@
 [] Ubuntu Record / Inference video Play Slow, maybe try cuda decode https://github.com/huggingface/lerobot/pull/913/files
 [] Learn 1 Grab -> 2 Placement
 
+# Calibration
+
+```
+/Users/david/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/di.json # Mac
+/root/.cache/huggingface/lerobot/calibration/robots/lekiwi/didi.json # RP5
+```
+
+
 # RP5 Sync
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
 
@@ -253,10 +261,40 @@ export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 ```
 
+## dataset grab_toy_1 (grab 1 car)
+```
+screen
+rm -rf outputs/pi05_grab_toy_1 && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/grab_toy_1 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_grab_toy_1 \
+    --job_name=pi05_training \
+    --policy.repo_id=davidlau90/pi05_grab_toy_1 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --steps=60000 \
+    --log_fre=50 \
+    --batch_size=168 \
+    --save_freq=100 \
+    > logs/train_grab_toy_1.txt 2>&1 &
+tail -f logs/train_grab_toy_1.txt
+
+INFO 2025-11-27 01:35:39 ot_train.py:262 cfg.steps=60000 (60K)
+INFO 2025-11-27 01:35:39 ot_train.py:263 dataset.num_frames=22452 (22K)
+INFO 2025-11-27 01:35:39 ot_train.py:264 dataset.num_episodes=50
+INFO 2025-11-27 01:35:39 ot_train.py:267 Effective batch size: 168 x 1 = 168
+INFO 2025-11-27 01:35:39 ot_train.py:268 num_learnable_params=3616757520 (4B)
+INFO 2025-11-27 01:35:39 ot_train.py:269 num_total_params=3616757520 (4B)
+INFO 2025-11-27 01:35:39 ot_train.py:324 Start offline training on a fixed dataset
+```
 
 ## dataset 0123 (1 car, clear background, 85 episodes)
 ```
-
 # eval on 4090 
 python src/lerobot/scripts/lerobot_train_eval_only.py \
     --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 \
