@@ -88,7 +88,8 @@ class PI05Config(PreTrainedConfig):
     
     lora_rank: int = 8          
     lora_alpha: int = 16  # LoRA scaling factor
-    # lora_target_modules: list[str] = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    lora_target_modules: list[str] = field(default_factory=lambda: ["q_proj", "v_proj", "o_proj", "up_proj", "down_proj"])
+    # ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     use_lora: bool = False
 
     def __post_init__(self):

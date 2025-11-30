@@ -548,6 +548,16 @@ class PI05Pytorch(nn.Module):  # see openpi `PI0Pytorch`
             freeze_vision_encoder=self.config.freeze_vision_encoder,
             freeze_language_model=self.config.freeze_language_model
         )
+        
+        
+        if config.use_lora:
+            print(f"Use LoRA: rank={config.lora_rank}, alpha={config.lora_alpha}")
+            self.replace_linear_with_lora(
+                self.paligemma_with_expert.gemma_expert.model,
+                config.lora_target_modules,
+                rank=config.lora_rank,
+                alpha=config.lora_alpha
+            )
 
         self.action_in_proj = nn.Linear(config.max_action_dim, action_expert_config.width)
         self.action_out_proj = nn.Linear(action_expert_config.width, config.max_action_dim)
@@ -572,6 +582,17 @@ class PI05Pytorch(nn.Module):  # see openpi `PI0Pytorch`
                 raise ValueError(msg)
         except ImportError:
             raise ValueError(msg) from None
+
+    def replace_linear_with_lora(self, module, target_modules, rank=8, alpha=16):
+        """Recursively replace Linear layers with LoRALinear in the given target_modules."""
+        for name, submodule in module.named_children():
+            print(f"Use LoRA at module name: {name} type: {type(submodule)}")
+            if isinstance(submodule, nn.Linear) and name in target_modules:
+                # Replace Linear with LoRALinear
+                setattr(module, name, LoRALinear(submodule, rank=rank, alpha=alpha))
+            else:
+                # Recursively apply to child modules
+                self.replace_linear_with_lora(submodule, target_modules, rank, alpha)
 
     def gradient_checkpointing_enable(self):
         """Enable gradient checkpointing for memory optimization."""
@@ -852,22 +873,49 @@ class PI05Pytorch(nn.Module):  # see openpi `PI0Pytorch`
         suffix_out = suffix_out.to(dtype=torch.float32)
         return self.action_out_proj(suffix_out)
 
-# 在PI05Pytorch类中添加LoRALinear类
+
 class LoRALinear(nn.Module):
-    def __init__(self, linear_layer, rank=8, alpha=16):
+    def __init__(self, linear_layer: nn.Linear, rank=8, alpha=16, dropout=0.0, bias=True):
         super().__init__()
-        self.linear = linear_layer
-        self.lora_A = nn.Linear(linear_layer.in_features, rank, bias=False)
-        self.lora_B = nn.Linear(rank, linear_layer.out_features, bias=False)
-        self.scale = alpha / rank
-        self.reset_parameters()
-    
-    def reset_parameters(self):
-        self.lora_A.weight.data.zero_()
-        self.lora_B.weight.data.zero_()
-    
+        self.linear = linear_layer  # keep original linear layer (weight & bias)
+        self.rank = rank
+        self.alpha = alpha
+        self.scaling = alpha / rank
+        # freeze orignial linear layer parameters
+        for param in self.linear.parameters():
+            param.requires_grad = False
+        # Create LoRA parameters
+        dtype = linear_layer.weight.dtype
+        self.lora_A = nn.Parameter(torch.zeros(linear_layer.in_features, rank, dtype=dtype))
+        self.lora_B = nn.Parameter(torch.zeros(rank, linear_layer.out_features, dtype=dtype))
+        if dropout > 0.0:
+            self.dropout = nn.Dropout(dropout)
+        else:
+            self.dropout = nn.Identity()
+        # Initialize LoRA parameters
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+        nn.init.zeros_(self.lora_B)
+
     def forward(self, x):
-        return self.linear(x) + self.lora_B(self.lora_A(x)) * self.scale
+        base_out = self.linear(x)
+        lora_out = self.dropout(x @ self.lora_A) @ self.lora_B * self.scaling
+        return base_out + lora_out
+
+    @property
+    def weight(self):
+        return self.linear.weight
+
+    @property
+    def bias(self):
+        return self.linear.bias
+
+    @property
+    def in_features(self):
+        return self.linear.in_features
+
+    @property
+    def out_features(self):
+        return self.linear.out_features
 
 
 class PI05Policy(PreTrainedPolicy):
@@ -895,14 +943,6 @@ class PI05Policy(PreTrainedPolicy):
         if config.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
 
-        if config.use_lora:
-            print(f"Use LoRA: rank={config.lora_rank}, alpha={config.lora_alpha}")
-            self.replace_linear_with_lora(
-                self.paligemma_with_expert.gemma_expert.model,
-                config.lora_target_modules,
-                rank=config.lora_rank,
-                alpha=config.lora_alpha
-            )
 
         self.model.to(config.device)
 
@@ -1028,19 +1068,7 @@ class PI05Policy(PreTrainedPolicy):
         except Exception as e:
             print(f"Warning: Could not remap state dict keys: {e}")
 
-        return model
-
-
-    def replace_linear_with_lora(self, module, target_modules, rank=8, alpha=16):
-        """递归替换模块中的Linear层为LoRALinear层，仅针对target_modules指定的模块."""
-        for name, submodule in module.named_children():
-            if isinstance(submodule, nn.Linear) and name in target_modules:
-                # 替换Linear层
-                setattr(module, name, LoRALinear(submodule, rank=rank, alpha=alpha))
-            else:
-                # 递归处理子模块
-                self.replace_linear_with_lora(submodule, target_modules, rank, alpha)
-    
+        return model    
     
     def _fix_pytorch_state_dict_keys(
         self, state_dict, model_config

@@ -4,28 +4,32 @@
 [] Learn 1 Grab -> 2 Placement
 
 # Calibration
-
 ```
 /Users/david/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/di.json # Mac
 /root/.cache/huggingface/lerobot/calibration/robots/lekiwi/didi.json # RP5
 ```
 
-
 # RP5 Sync
+```
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
+```
 
 # PC Sync
+```
 export HF_DATASETS_OFFLINE=1
 export HF_HUB_OFFLINE=1
 python examples/lekiwi/evaluate.py 
-
+```
 
 # PC Async
+```
 python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
+```
 
 # RP Async
 
 Notes: X observation per chunk 
+```
 python -m lerobot.async_inference.robot_client     \
     --robot.type=lekiwi     \
     --robot.port=/dev/ttyACM0     \
@@ -56,9 +60,9 @@ python -m lerobot.async_inference.robot_client     \
     --chunk_size_threshold=0.5     \
     --aggregate_fn_name=weighted_average   \
     --debug_visualize_queue_size=False
+```
 
-
-```python
+```
 import pickle
 from PIL import Image
 import numpy as np
@@ -85,10 +89,6 @@ for i in range(0, 44):
 
 print(type(observation))
 print(observation)
-# TimedObservation(timestamp=1763884202.1972432, timestep=125, observation={'arm_shoulder_pan.pos': -16.34980988593155, 'arm_shoulder_lift.pos': -3.2230703986429177, 'arm_elbow_flex.pos': 20.667870036101093, 'arm_wrist_flex.pos': 48.84341637010675, 'arm_wrist_roll.pos': 2.124542124542117, 'arm_gripper.pos': 19.579945799457995, 'x.vel': np.float64(0.01771288441634978), 'y.vel': np.float64(0.010226538585904275), 'theta.vel': np.float64(4.6875), 'front': array([[[ 43, 105, 130],
-#         [ 43, 105, 130],
-#         [ 47, 103, 123],
-#         ...,
 ```
 
 
@@ -103,7 +103,7 @@ LeKiwi Setup
 Setup
 【5-lerobot 校准、遥操及异常处理-哔哩哔哩】 https://b23.tv/ev3KDvP
 
-
+```
 hostname -I
 192.168.0.207 198.18.0.1
 
@@ -123,26 +123,34 @@ vim pyproject.toml # https://github.com -> https://gh-proxy.com/https://github.c
 pip install -e ".[lekiwi]"
 pip install -e ".[pi]"
 pip install -e ".[async]"
-
-
+```
 
 # Test Camera (RP5)
-* cd ~/lerobot/tests && python test_cam.py
-* vim src/lerobot/robots/lekiwi/config_lekiwi.py
+```
+cd ~/lerobot/tests && python test_cam.py
+vim src/lerobot/robots/lekiwi/config_lekiwi.py
+```
 
 # Calibration
+```
 lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/tty.usbmodem5AB01813381 --teleop.id=di
 lerobot-calibrate --robot.type=lekiwi --robot.id=didi
+```
 
 # Start Tele Op (PC leader arm)
+```
 python examples/lekiwi/teleoperate.py 
+```
 
 # Start Host (RP)
+```
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 15}}"
-
+```
 
 # Dataset Record 
+```
 python -i examples/lekiwi/record_toy.py
+```
 
 - Right arrow key pressed. Exiting loop...
 - Left arrow key pressed. Exiting loop and rerecord the last episode
@@ -154,7 +162,9 @@ python -i examples/lekiwi/record_toy.py
 - Q: quit tele op
 
 # Dataset Upload 
+```
 hf upload davidlau90/lekiwi_toy_pickup_2 ~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_2 --repo-type dataset
+```
 
 训练数据路径：
 ```
@@ -165,33 +175,117 @@ davidlau90/grab_toy_1 # 抓小车 50次 不移动
 ```
 
 
-
 # Replay Recording
+```
 python examples/lekiwi/replay.py
+```
 
 # Visualize Dataset (HF -> rdd -> rerun.io)
+```
 python lerobot_dataset_viz.py
+```
 
-
-
-
-# PC 5080 sm120 support
+# PC 5080 sm120 Support
+```
 pip uninstall torch torchcodec torchvision
 pip install torch==2.7	torchcodec==0.5 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-
-# Freeze Param
-
-| Freeze    | Learnable / Total Param | Used / Total GPU RAM |
-|-----------|-------------------------|----------------------|
-| NA        | 3.6B / 3.6B             | 30GB / 80GB          |
-|*Vision+LM | 696M / 3.6B             | 12.3GB / 16.3GB      |
-| Vision    | 1.1B / 3.6B             | 15.7GB / 16.3GB      |
-| LM        | 3.2B / 3.6B             | OOM /16.3GB          |
-
-
-PC 5080 
 ```
-python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_pickup_457 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=1 --policy.freeze_vision_encoder=True --policy.freeze_language_model=True
+# LoRA / Frozen Param Support
+
+| Frozen Param    | Learnable / Total Param | Used / Total GPU RAM |
+|-----------------|-------------------------|----------------------|
+| NA              | 3.6B / 3.6B             | 30GB / 80GB          |
+| Vision+LM+Lora8 | 467M / 3.6B             | 10.7GB / 16.3GB      |
+|*Vision+LM       | 696M / 3.6B             | 12.3GB / 16.3GB      |
+| Vision          | 1.1B / 3.6B             | 15.7GB / 16.3GB      |
+| LM              | 3.2B / 3.6B             | OOM /16.3GB          |
+
+Note: batch_size=1
+
+## Experiment on RTX 5080 
+```
+export HF_HOME=/ssd1t/david/huggingface
+
+export VARIANT=test_froze
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/datasets/davidlau90/lekiwi_toy_pickup_457 \
+    --wandb.enable=true \
+    --job_name=pi05_training \
+    --output_dir=./outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT}$ \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=3000 \
+    --log_fre=200 \
+    --eval_fre=200 \
+    --eval_freq=1000 \
+    --batch_size=10 \
+> logs/${VARIANT}.txt 2>&1
+step:200.0 smpl:2K ep:2 epch:0.09 loss:0.190 grdn:1.276 lr:1.9e-05 updt_s:1.718 data_s:0.011
+step:400.0 smpl:4K ep:4 epch:0.18 loss:0.083 grdn:0.699 lr:2.4e-05 updt_s:1.688 data_s:0.008
+step:600.0 smpl:6K ep:7 epch:0.26 loss:0.068 grdn:0.618 lr:2.3e-05 updt_s:1.678 data_s:0.008
+step:800.0 smpl:8K ep:9 epch:0.35 loss:0.065 grdn:0.642 lr:2.2e-05 updt_s:1.678 data_s:0.008
+step:1.0K smpl:10K ep:11 epch:0.44 loss:0.062 grdn:0.666 lr:2.0e-05 updt_s:1.678 data_s:0.008
+step:1.2K smpl:12K ep:13 epch:0.53 loss:0.054 grdn:0.607 lr:1.8e-05 updt_s:1.677 data_s:0.008
+step:1.4K smpl:14K ep:15 epch:0.62 loss:0.054 grdn:0.607 lr:1.6e-05 updt_s:1.678 data_s:0.008
+step:1.6K smpl:16K ep:18 epch:0.71 loss:0.051 grdn:0.616 lr:1.4e-05 updt_s:1.677 data_s:0.008
+step:1.8K smpl:18K ep:20 epch:0.79 loss:0.051 grdn:0.634 lr:1.1e-05 updt_s:1.678 data_s:0.008
+step:2.0K smpl:20K ep:22 epch:0.88 loss:0.050 grdn:0.634 lr:9.2e-06 updt_s:1.678 data_s:0.008
+step:2.2K smpl:22K ep:24 epch:0.97 loss:0.048 grdn:0.610 lr:7.1e-06 updt_s:1.678 data_s:0.008
+step:2.4K smpl:24K ep:26 epch:1.06 loss:0.045 grdn:0.616 lr:5.4e-06 updt_s:1.678 data_s:0.010
+step:2.6K smpl:26K ep:29 epch:1.15 loss:0.046 grdn:0.657 lr:4.0e-06 updt_s:1.678 data_s:0.008
+step:2.8K smpl:28K ep:31 epch:1.24 loss:0.045 grdn:0.628 lr:3.1e-06 updt_s:1.677 data_s:0.008
+step:3.0K smpl:30K ep:33 epch:1.32 loss:0.043 grdn:0.583 lr:2.6e-06 updt_s:1.678 data_s:0.008
+
+export VARIANT=test_froze_lora
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=/ssd1t/david/datasets/davidlau90/lekiwi_toy_pickup_457 \
+    --wandb.enable=true \
+    --job_name=pi05_training \
+    --output_dir=./outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT}$ \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=true \
+    --policy.lora_rank=8 \
+    --steps=3000 \
+    --log_fre=200 \
+    --eval_fre=200 \
+    --eval_freq=1000 \
+    --batch_size=10 \
+> logs/${VARIANT}.txt 2>&1
+step:200.0 smpl:2K ep:2 epch:0.09 loss:1.255 grdn:4.754 lr:1.9e-05 updt_s:1.812 data_s:0.022
+step:400.0 smpl:4K ep:4 epch:0.18 loss:0.574 grdn:3.440 lr:2.4e-05 updt_s:1.683 data_s:0.008
+step:600.0 smpl:6K ep:7 epch:0.26 loss:0.255 grdn:4.220 lr:2.3e-05 updt_s:1.682 data_s:0.008
+step:800.0 smpl:8K ep:9 epch:0.35 loss:0.186 grdn:4.264 lr:2.2e-05 updt_s:1.683 data_s:0.008
+step:1.0K smpl:10K ep:11 epch:0.44 loss:0.167 grdn:4.263 lr:2.0e-05 updt_s:1.683 data_s:0.008
+step:1.2K smpl:12K ep:13 epch:0.53 loss:0.149 grdn:3.960 lr:1.8e-05 updt_s:1.682 data_s:0.008
+step:1.4K smpl:14K ep:15 epch:0.62 loss:0.130 grdn:3.825 lr:1.6e-05 updt_s:1.682 data_s:0.008
+step:1.6K smpl:16K ep:18 epch:0.71 loss:0.131 grdn:3.853 lr:1.4e-05 updt_s:1.683 data_s:0.008
+step:1.8K smpl:18K ep:20 epch:0.79 loss:0.121 grdn:3.717 lr:1.1e-05 updt_s:1.682 data_s:0.008
+step:2.0K smpl:20K ep:22 epch:0.88 loss:0.110 grdn:3.516 lr:9.2e-06 updt_s:1.682 data_s:0.008
+step:2.2K smpl:22K ep:24 epch:0.97 loss:0.106 grdn:3.402 lr:7.1e-06 updt_s:1.683 data_s:0.008
+step:2.4K smpl:24K ep:26 epch:1.06 loss:0.103 grdn:3.283 lr:5.4e-06 updt_s:1.682 data_s:0.010
+step:2.6K smpl:26K ep:29 epch:1.15 loss:0.096 grdn:3.083 lr:4.0e-06 updt_s:1.683 data_s:0.008
+step:2.8K smpl:28K ep:31 epch:1.24 loss:0.098 grdn:3.103 lr:3.1e-06 updt_s:1.682 data_s:0.008
+step:3.0K smpl:30K ep:33 epch:1.32 loss:0.093 grdn:3.042 lr:2.6e-06 updt_s:1.682 data_s:0.008
+
+
 
 ```
 
