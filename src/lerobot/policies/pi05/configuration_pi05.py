@@ -83,6 +83,14 @@ class PI05Config(PreTrainedConfig):
 
     tokenizer_max_length: int = 200  # see openpi `__post_init__`
 
+    freeze_vision_encoder: bool = False  # Whether to freeze the vision encoder in Paligemma
+    freeze_language_model: bool = False  # Whether to freeze the language model in Paligemma
+    
+    lora_rank: int = 8          
+    lora_alpha: int = 16  # LoRA scaling factor
+    # lora_target_modules: list[str] = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    use_lora: bool = False
+
     def __post_init__(self):
         super().__post_init__()
 

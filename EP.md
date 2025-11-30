@@ -166,7 +166,7 @@ davidlau90/grab_toy_1 # 抓小车 50次 不移动
 
 
 
-# Replay Rec.
+# Replay Recording
 python examples/lekiwi/replay.py
 
 # Visualize Dataset (HF -> rdd -> rerun.io)
@@ -179,31 +179,19 @@ python lerobot_dataset_viz.py
 pip uninstall torch torchcodec torchvision
 pip install torch==2.7	torchcodec==0.5 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
-# Freeze
+# Freeze Param
 
-PC 5080 16G OOM
+| Freeze    | Learnable / Total Param | Used / Total GPU RAM |
+|-----------|-------------------------|----------------------|
+| NA        | 3.6B / 3.6B             | 30GB / 80GB          |
+|*Vision+LM | 696M / 3.6B             | 12.3GB / 16.3GB      |
+| Vision    | 1.1B / 3.6B             | 15.7GB / 16.3GB      |
+| LM        | 3.2B / 3.6B             | OOM /16.3GB          |
+
+
+PC 5080 
 ```
-python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_pickup_457 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=1
-```
-
-BitaHub 
-- 4090 24G OOM
-- A100 training batch_size=1
-    - fully finetune:  33.8G (3.6B/3.6B)
-    - freeze paligema: 30.4G (3.2B/3.6B), saving ~ 8x0.4 GB RAM
-
-
-```
-python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_0123 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=168
-
-INFO 2025-11-28 01:25:46 ot_train.py:267 Effective batch size: 1 x 1 = 1
-INFO 2025-11-28 01:25:46 ot_train.py:268 num_learnable_params=3204315168 (3B)
-INFO 2025-11-28 01:25:46 ot_train.py:269 num_total_params=3616757520 (4B)
-
-
-INFO 2025-11-28 01:31:15 ot_train.py:267 Effective batch size: 1 x 1 = 1
-INFO 2025-11-28 01:31:15 ot_train.py:268 num_learnable_params=3616757520 (4B)
-INFO 2025-11-28 01:31:15 ot_train.py:269 num_total_params=3616757520 (4B)
+python src/lerobot/scripts/lerobot_train.py --dataset.repo_id=/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_pickup_457 --policy.type=pi05 --output_dir=./outputs/test --job_name=pi05_training --policy.repo_id=davidlau90/test --policy.pretrained_path=lerobot/pi05_base --policy.compile_model=true --policy.gradient_checkpointing=true --wandb.enable=false --policy.dtype=bfloat16 --policy.device=cuda --steps=3000 --batch_size=1 --policy.freeze_vision_encoder=True --policy.freeze_language_model=True
 
 ```
 

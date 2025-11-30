@@ -328,6 +328,8 @@ class PaliGemmaWithExpertModel(
         action_expert_config,
         use_adarms=None,
         precision: Literal["bfloat16", "float32"] = "bfloat16",
+        freeze_vision_encoder=False,
+        freeze_language_model=False
     ):
         if use_adarms is None:
             use_adarms = [False, False]
@@ -372,9 +374,8 @@ class PaliGemmaWithExpertModel(
 
         self.to_bfloat16_for_selected_params(precision)
 
-        # TODO XJ pass as param
-        freeze_vision_encoder = False
         self.freeze_vision_encoder = freeze_vision_encoder
+        self.freeze_language_model = freeze_language_model
         self.set_requires_grad()
 
 
@@ -382,6 +383,10 @@ class PaliGemmaWithExpertModel(
         if self.freeze_vision_encoder:
             self.paligemma.vision_tower.eval()
             for param in self.paligemma.vision_tower.parameters():
+                param.requires_grad = False        
+        if self.freeze_language_model:
+            self.paligemma.language_model.eval()
+            for param in self.paligemma.language_model.parameters():
                 param.requires_grad = False
         else:
             # To avoid unused params issue with distributed training
@@ -392,6 +397,10 @@ class PaliGemmaWithExpertModel(
 
         if self.freeze_vision_encoder:
             self.paligemma.vision_tower.eval()
+            
+        if self.freeze_language_model:
+            self.paligemma.language_model.eval()
+
 
 
     def to_bfloat16_for_selected_params(self, precision: Literal["bfloat16", "float32"] = "bfloat16"):
@@ -536,6 +545,8 @@ class PI05Pytorch(nn.Module):  # see openpi `PI0Pytorch`
             action_expert_config,
             use_adarms=[False, True],
             precision=config.dtype,
+            freeze_vision_encoder=self.config.freeze_vision_encoder,
+            freeze_language_model=self.config.freeze_language_model
         )
 
         self.action_in_proj = nn.Linear(config.max_action_dim, action_expert_config.width)
@@ -841,6 +852,23 @@ class PI05Pytorch(nn.Module):  # see openpi `PI0Pytorch`
         suffix_out = suffix_out.to(dtype=torch.float32)
         return self.action_out_proj(suffix_out)
 
+# 在PI05Pytorch类中添加LoRALinear类
+class LoRALinear(nn.Module):
+    def __init__(self, linear_layer, rank=8, alpha=16):
+        super().__init__()
+        self.linear = linear_layer
+        self.lora_A = nn.Linear(linear_layer.in_features, rank, bias=False)
+        self.lora_B = nn.Linear(rank, linear_layer.out_features, bias=False)
+        self.scale = alpha / rank
+        self.reset_parameters()
+    
+    def reset_parameters(self):
+        self.lora_A.weight.data.zero_()
+        self.lora_B.weight.data.zero_()
+    
+    def forward(self, x):
+        return self.linear(x) + self.lora_B(self.lora_A(x)) * self.scale
+
 
 class PI05Policy(PreTrainedPolicy):
     """PI05 Policy for LeRobot."""
@@ -866,6 +894,15 @@ class PI05Policy(PreTrainedPolicy):
         # Enable gradient checkpointing if requested
         if config.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
+
+        if config.use_lora:
+            print(f"Use LoRA: rank={config.lora_rank}, alpha={config.lora_alpha}")
+            self.replace_linear_with_lora(
+                self.paligemma_with_expert.gemma_expert.model,
+                config.lora_target_modules,
+                rank=config.lora_rank,
+                alpha=config.lora_alpha
+            )
 
         self.model.to(config.device)
 
@@ -993,6 +1030,18 @@ class PI05Policy(PreTrainedPolicy):
 
         return model
 
+
+    def replace_linear_with_lora(self, module, target_modules, rank=8, alpha=16):
+        """递归替换模块中的Linear层为LoRALinear层，仅针对target_modules指定的模块."""
+        for name, submodule in module.named_children():
+            if isinstance(submodule, nn.Linear) and name in target_modules:
+                # 替换Linear层
+                setattr(module, name, LoRALinear(submodule, rank=rank, alpha=alpha))
+            else:
+                # 递归处理子模块
+                self.replace_linear_with_lora(submodule, target_modules, rank, alpha)
+    
+    
     def _fix_pytorch_state_dict_keys(
         self, state_dict, model_config
     ):  # see openpi `BaseModelConfig, _fix_pytorch_state_dict_keys`
