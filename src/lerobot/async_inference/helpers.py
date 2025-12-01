@@ -59,6 +59,7 @@ def visualize_action_queue_size(action_queue_size: list[int]) -> None:
     ax.set_ylim(0, max(action_queue_size) * 1.1)
     ax.grid(True, alpha=0.3)
     ax.plot(range(len(action_queue_size)), action_queue_size)
+    plt.savefig("outputs/action_queue_size.png")
     plt.show()
 
 

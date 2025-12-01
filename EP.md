@@ -62,47 +62,7 @@ python -m lerobot.async_inference.robot_client     \
     --debug_visualize_queue_size=False
 ```
 
-```
-import pickle
-from PIL import Image
-import numpy as np
-
-def save(observation, obs='wrist', i=0):
-    img_array = observation.observation[obs]
-    if img_array.dtype != np.uint8:
-        if img_array.max() <= 1.0:
-            img_array = (img_array * 255).astype(np.uint8)
-        else:
-            img_array = img_array.astype(np.uint8)
-    img = Image.fromarray(img_array)
-    img.save(f'obs/{obs}_{i}.png')  
-
-
-for i in range(0, 44):
-    with open(f'obs/obs_{i}.pkl', 'rb') as f:  # 注意：必须用 'rb'（读二进制）
-        observation = pickle.load(f)
-        save(observation, 'wrist', i)
-        save(observation, 'front', i)
-
-
-
-
-print(type(observation))
-print(observation)
-```
-
-
-
-LeKiwi Setup
-
-
-具身智能π0.5(pi0.5)模型在lerobot机械臂上复现 知乎 笔者就采了50个任务，积木放在5个固定的点位，平均每点位10个任务，每个点位积木的朝向在360度范围内随机均匀摆放。lerobot文档建议实验时不要引入太多的变量，所以我就只在积木摆放的点位上有一些多样性，积木和盘子用的是固定的。
-
-
-
-Setup
-【5-lerobot 校准、遥操及异常处理-哔哩哔哩】 https://b23.tv/ev3KDvP
-
+# LeKiwi Setup
 ```
 hostname -I
 192.168.0.207 198.18.0.1
@@ -163,7 +123,7 @@ python -i examples/lekiwi/record_toy.py
 
 # Dataset Upload 
 ```
-hf upload davidlau90/lekiwi_toy_pickup_2 ~/.cache/huggingface/lerobot/davidlau90/lekiwi_toy_pickup_2 --repo-type dataset
+hf upload davidlau90/toy_pickup ~/.cache/huggingface/lerobot/davidlau90/toy_pickup --repo-type dataset
 ```
 
 训练数据路径：
@@ -205,15 +165,19 @@ Note: batch_size=1
 ## Experiment on RTX 5080 
 ```
 export HF_HOME=/ssd1t/david/huggingface
+export HF_HOME_HUB=/ssd1t/david/huggingface/hub
+export HF_ENDPOINT=https://hf-mirror.com
 
-export VARIANT=test_froze
+# train grab & pick together
+export VARIANT=pi05-grab-and-pick-peft
 rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=/ssd1t/david/datasets/davidlau90/lekiwi_toy_pickup_457 \
-    --wandb.enable=true \
+    --dataset.repo_id=davidlau90/grab_and_pickup \
+    --dataset.root=/ssd1t/david/datasets/davidlau90/grab_and_pickup \
+    --wandb.enable=false \
     --job_name=pi05_training \
-    --output_dir=./outputs/${VARIANT} \
-    --policy.repo_id=davidlau90/${VARIANT}$ \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
     --policy.type=pi05 \
     --policy.pretrained_path=lerobot/pi05_base \
     --policy.compile_model=true \
@@ -223,36 +187,140 @@ python src/lerobot/scripts/lerobot_train.py \
     --policy.freeze_vision_encoder=true \
     --policy.freeze_language_model=true \
     --policy.use_lora=false \
-    --steps=3000 \
-    --log_fre=200 \
-    --eval_fre=200 \
+    --steps=27000 \
+    --log_fre=500 \
     --eval_freq=1000 \
-    --batch_size=10 \
-> logs/${VARIANT}.txt 2>&1
-step:200.0 smpl:2K ep:2 epch:0.09 loss:0.190 grdn:1.276 lr:1.9e-05 updt_s:1.718 data_s:0.011
-step:400.0 smpl:4K ep:4 epch:0.18 loss:0.083 grdn:0.699 lr:2.4e-05 updt_s:1.688 data_s:0.008
-step:600.0 smpl:6K ep:7 epch:0.26 loss:0.068 grdn:0.618 lr:2.3e-05 updt_s:1.678 data_s:0.008
-step:800.0 smpl:8K ep:9 epch:0.35 loss:0.065 grdn:0.642 lr:2.2e-05 updt_s:1.678 data_s:0.008
-step:1.0K smpl:10K ep:11 epch:0.44 loss:0.062 grdn:0.666 lr:2.0e-05 updt_s:1.678 data_s:0.008
-step:1.2K smpl:12K ep:13 epch:0.53 loss:0.054 grdn:0.607 lr:1.8e-05 updt_s:1.677 data_s:0.008
-step:1.4K smpl:14K ep:15 epch:0.62 loss:0.054 grdn:0.607 lr:1.6e-05 updt_s:1.678 data_s:0.008
-step:1.6K smpl:16K ep:18 epch:0.71 loss:0.051 grdn:0.616 lr:1.4e-05 updt_s:1.677 data_s:0.008
-step:1.8K smpl:18K ep:20 epch:0.79 loss:0.051 grdn:0.634 lr:1.1e-05 updt_s:1.678 data_s:0.008
-step:2.0K smpl:20K ep:22 epch:0.88 loss:0.050 grdn:0.634 lr:9.2e-06 updt_s:1.678 data_s:0.008
-step:2.2K smpl:22K ep:24 epch:0.97 loss:0.048 grdn:0.610 lr:7.1e-06 updt_s:1.678 data_s:0.008
-step:2.4K smpl:24K ep:26 epch:1.06 loss:0.045 grdn:0.616 lr:5.4e-06 updt_s:1.678 data_s:0.010
-step:2.6K smpl:26K ep:29 epch:1.15 loss:0.046 grdn:0.657 lr:4.0e-06 updt_s:1.678 data_s:0.008
-step:2.8K smpl:28K ep:31 epch:1.24 loss:0.045 grdn:0.628 lr:3.1e-06 updt_s:1.677 data_s:0.008
-step:3.0K smpl:30K ep:33 epch:1.32 loss:0.043 grdn:0.583 lr:2.6e-06 updt_s:1.678 data_s:0.008
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=15 \
+> outputs/logs/${VARIANT}.txt 2>&1
+INFO step:1.0K smpl:15K ep:25 epch:0.33 loss:0.091 grdn:0.745 lr:2.1e-05 updt_s:2.443 data_s:0.007
+INFO step:5.0K smpl:75K ep:125 epch:1.66 loss:0.064 grdn:0.727 lr:2.3e-05 updt_s:2.443 data_s:0.006
+INFO step:10.0K smpl:150K ep:249 epch:3.33 loss:0.053 grdn:0.736 lr:1.9e-05 updt_s:2.442 data_s:0.007
+INFO step:12.0K smpl:180K ep:299 epch:3.99 loss:0.053 grdn:0.733 lr:1.6e-05 updt_s:2.442 data_s:0.007
+INFO step:13.0K smpl:195K ep:324 epch:4.32 loss:0.049 grdn:0.753 lr:1.5e-05 updt_s:2.443 data_s:0.007
+INFO step:14.0K smpl:210K ep:349 epch:4.66 loss:0.051 grdn:0.766 lr:1.3e-05 updt_s:2.445 data_s:0.007
+INFO step:14.5K smpl:218K ep:362 epch:4.82 loss:0.050 grdn:0.738 lr:1.3e-05 updt_s:2.453 data_s:0.007
 
-export VARIANT=test_froze_lora
+# train pick on top of grab 
+export VARIANT=pi05-grab-pick-peft
 rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=/ssd1t/david/datasets/davidlau90/lekiwi_toy_pickup_457 \
+    --dataset.repo_id=davidlau90/pickup_toy_457 \
+    --dataset.root=/ssd1t/david/datasets/davidlau90/pickup_toy_457 \
+    --wandb.enable=false \
+    --job_name=pi05_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=27000 \
+    --log_fre=500 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=15 \
+    --resume=true \
+    --config_path=outputs/pi05-grab-peft/checkpoints/last/pretrained_model/train_config.json \
+> outputs/logs/${VARIANT}.txt 2>&1
+step:12.0K smpl:180K ep:199 epch:7.95 loss:0.035 grdn:0.494 lr:1.6e-05 updt_s:2.445 data_s:0.007
+step:15.0K smpl:225K ep:248 epch:9.93 loss:0.027 grdn:0.466 lr:1.2e-05 updt_s:2.445 data_s:0.007
+step:18.0K smpl:270K ep:298 epch:11.92 loss:0.023 grdn:0.444 lr:8.4e-06 updt_s:2.445 data_s:0.007
+step:21.0K smpl:315K ep:348 epch:13.91 loss:0.021 grdn:0.468 lr:5.3e-06 updt_s:2.445 data_s:0.007
+step:24.0K smpl:360K ep:397 epch:15.89 loss:0.020 grdn:0.460 lr:3.3e-06 updt_s:2.445 data_s:0.007
+step:27.0K smpl:405K ep:447 epch:17.88 loss:0.019 grdn:0.467 lr:2.5e-06 updt_s:2.478 data_s:0.007
+
+export VARIANT=pi05-pick-peft
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=davidlau90/pickup_toy_457 \
+    --dataset.root=/ssd1t/david/datasets/davidlau90/pickup_toy_457 \
     --wandb.enable=true \
     --job_name=pi05_training \
-    --output_dir=./outputs/${VARIANT} \
-    --policy.repo_id=davidlau90/${VARIANT}$ \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=9000 \
+    --log_fre=500 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=15 \
+> outputs/logs/${VARIANT}.txt 2>&1
+INFO 01:45:16 step:500.0 smpl:8K ep:8 epch:0.33 loss:0.153 grdn:0.972 lr:1.8e-05 updt_s:2.452 data_s:0.012
+INFO 02:05:45 step:1.0K smpl:15K ep:17 epch:0.66 loss:0.060 grdn:0.527 lr:2.5e-05 updt_s:2.447 data_s:0.011
+INFO 02:26:14 step:1.5K smpl:22K ep:25 epch:0.99 loss:0.052 grdn:0.529 lr:2.4e-05 updt_s:2.446 data_s:0.011
+INFO 02:46:43 step:2.0K smpl:30K ep:33 epch:1.32 loss:0.045 grdn:0.497 lr:2.3e-05 updt_s:2.446 data_s:0.012
+INFO 03:07:11 step:2.5K smpl:38K ep:41 epch:1.66 loss:0.040 grdn:0.497 lr:2.2e-05 updt_s:2.446 data_s:0.011
+INFO 03:27:49 step:3.0K smpl:45K ep:50 epch:1.99 loss:0.037 grdn:0.499 lr:2.0e-05 updt_s:2.463 data_s:0.011
+
+export VARIANT=pi05-grab-peft
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=davidlau90/grab_toy_1 \
+    --wandb.enable=true \
+    --job_name=pi05_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=9000 \
+    --log_fre=500 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=10 \
+> outputs/logs/${VARIANT}.txt 2>&1
+INFO 2025-11-30 20:09:19 ot_train.py:351 step:500.0 smpl:5K ep:11 epch:0.22 loss:0.195 grdn:1.341 lr:1.8e-05 updt_s:1.690 data_s:0.011
+INFO 2025-11-30 20:23:23 ot_train.py:351 step:1.0K smpl:10K ep:22 epch:0.45 loss:0.080 grdn:0.810 lr:2.5e-05 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 20:37:27 ot_train.py:351 step:1.5K smpl:15K ep:33 epch:0.67 loss:0.071 grdn:0.834 lr:2.4e-05 updt_s:1.681 data_s:0.008
+INFO 2025-11-30 20:51:31 ot_train.py:351 step:2.0K smpl:20K ep:45 epch:0.89 loss:0.061 grdn:0.741 lr:2.3e-05 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 21:05:35 ot_train.py:351 step:2.5K smpl:25K ep:56 epch:1.11 loss:0.057 grdn:0.747 lr:2.2e-05 updt_s:1.677 data_s:0.009
+INFO 2025-11-30 21:19:40 ot_train.py:351 step:3.0K smpl:30K ep:67 epch:1.34 loss:0.056 grdn:0.763 lr:2.0e-05 updt_s:1.682 data_s:0.008
+INFO 2025-11-30 21:37:19 ot_train.py:351 step:3.5K smpl:35K ep:78 epch:1.56 loss:0.051 grdn:0.769 lr:1.8e-05 updt_s:1.689 data_s:0.008
+INFO 2025-11-30 21:51:24 ot_train.py:351 step:4.0K smpl:40K ep:89 epch:1.78 loss:0.049 grdn:0.751 lr:1.7e-05 updt_s:1.681 data_s:0.008
+INFO 2025-11-30 22:05:28 ot_train.py:351 step:4.5K smpl:45K ep:100 epch:2.00 loss:0.045 grdn:0.735 lr:1.5e-05 updt_s:1.679 data_s:0.009
+INFO 2025-11-30 22:19:32 ot_train.py:351 step:5.0K smpl:50K ep:111 epch:2.23 loss:0.043 grdn:0.725 lr:1.3e-05 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 22:33:36 ot_train.py:351 step:5.5K smpl:55K ep:122 epch:2.45 loss:0.041 grdn:0.737 lr:1.1e-05 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 22:47:40 ot_train.py:351 step:6.0K smpl:60K ep:134 epch:2.67 loss:0.041 grdn:0.776 lr:9.0e-06 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 23:04:42 ot_train.py:351 step:6.5K smpl:65K ep:145 epch:2.90 loss:0.040 grdn:0.736 lr:7.3e-06 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 23:18:46 ot_train.py:351 step:7.0K smpl:70K ep:156 epch:3.12 loss:0.038 grdn:0.742 lr:5.8e-06 updt_s:1.678 data_s:0.008
+INFO 2025-11-30 23:32:50 ot_train.py:351 step:7.5K smpl:75K ep:167 epch:3.34 loss:0.036 grdn:0.728 lr:4.5e-06 updt_s:1.680 data_s:0.008
+INFO 2025-11-30 23:46:54 ot_train.py:351 step:8.0K smpl:80K ep:178 epch:3.56 loss:0.036 grdn:0.728 lr:3.6e-06 updt_s:1.680 data_s:0.008
+INFO 2025-12-01 00:00:59 ot_train.py:351 step:8.5K smpl:85K ep:189 epch:3.79 loss:0.037 grdn:0.743 lr:2.9e-06 updt_s:1.680 data_s:0.008
+INFO 2025-12-01 00:15:02 ot_train.py:351 step:9.0K smpl:90K ep:200 epch:4.01 loss:0.036 grdn:0.727 lr:2.6e-06 updt_s:1.677 data_s:0.008
+
+
+export VARIANT=grab-lora
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=davidlau90/grab_toy_1 \
+    --wandb.enable=true \
+    --job_name=pi05_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
     --policy.type=pi05 \
     --policy.pretrained_path=lerobot/pi05_base \
     --policy.compile_model=true \
@@ -268,24 +336,10 @@ python src/lerobot/scripts/lerobot_train.py \
     --eval_fre=200 \
     --eval_freq=1000 \
     --batch_size=10 \
-> logs/${VARIANT}.txt 2>&1
-step:200.0 smpl:2K ep:2 epch:0.09 loss:1.255 grdn:4.754 lr:1.9e-05 updt_s:1.812 data_s:0.022
-step:400.0 smpl:4K ep:4 epch:0.18 loss:0.574 grdn:3.440 lr:2.4e-05 updt_s:1.683 data_s:0.008
-step:600.0 smpl:6K ep:7 epch:0.26 loss:0.255 grdn:4.220 lr:2.3e-05 updt_s:1.682 data_s:0.008
-step:800.0 smpl:8K ep:9 epch:0.35 loss:0.186 grdn:4.264 lr:2.2e-05 updt_s:1.683 data_s:0.008
-step:1.0K smpl:10K ep:11 epch:0.44 loss:0.167 grdn:4.263 lr:2.0e-05 updt_s:1.683 data_s:0.008
-step:1.2K smpl:12K ep:13 epch:0.53 loss:0.149 grdn:3.960 lr:1.8e-05 updt_s:1.682 data_s:0.008
-step:1.4K smpl:14K ep:15 epch:0.62 loss:0.130 grdn:3.825 lr:1.6e-05 updt_s:1.682 data_s:0.008
-step:1.6K smpl:16K ep:18 epch:0.71 loss:0.131 grdn:3.853 lr:1.4e-05 updt_s:1.683 data_s:0.008
-step:1.8K smpl:18K ep:20 epch:0.79 loss:0.121 grdn:3.717 lr:1.1e-05 updt_s:1.682 data_s:0.008
-step:2.0K smpl:20K ep:22 epch:0.88 loss:0.110 grdn:3.516 lr:9.2e-06 updt_s:1.682 data_s:0.008
-step:2.2K smpl:22K ep:24 epch:0.97 loss:0.106 grdn:3.402 lr:7.1e-06 updt_s:1.683 data_s:0.008
-step:2.4K smpl:24K ep:26 epch:1.06 loss:0.103 grdn:3.283 lr:5.4e-06 updt_s:1.682 data_s:0.010
-step:2.6K smpl:26K ep:29 epch:1.15 loss:0.096 grdn:3.083 lr:4.0e-06 updt_s:1.683 data_s:0.008
-step:2.8K smpl:28K ep:31 epch:1.24 loss:0.098 grdn:3.103 lr:3.1e-06 updt_s:1.682 data_s:0.008
+> outputs/logs/${VARIANT}.txt 2>&1
 step:3.0K smpl:30K ep:33 epch:1.32 loss:0.093 grdn:3.042 lr:2.6e-06 updt_s:1.682 data_s:0.008
 
-
+Note: LoRA loss is double
 
 ```
 
@@ -295,22 +349,34 @@ python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
 # Async Client Start RP5
 ```
 export PROMPT="pickup the toy\n"
-export ACT_PER_CHUNK=50
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model
-
-export ACT_PER_CHUNK=2
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/000200/pretrained_model # grab robot itself
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_toy_0123_again/checkpoints/001000/pretrained_model # movement ok, but cannot grab
-
-export PROMPT="grab the toy\n"
-export ACT_PER_CHUNK=2
 export CKPT=/ssd1t/david/lerobot/outputs/pi05_grab_1/checkpoints/001200/pretrained_model # still cannot grab
+export PROMPT="grab the toy\n"
+
+export MODEL=pi05-grab-peft 
+export PROMPT="grab the toy\n" # succ grab
+
+export MODEL=pi05-pick-peft 
+export PROMPT="pick the toy\n" # can't grab
+
+export MODEL=pi05-grab-and-pick-peft 
+export PROMPT="pickup the toy\n" # try to grab but failed
+
+
+export MODEL="pi05-grab-pick-peft"
+export PROMPT="grab the toy\n" # barely move
+export PROMPT="pickup the toy\n" # continous try to grab. succ grab and pickup after 5 tries. failed to place. 
+
+export CKPT=/ssd1t/david/lerobot/outputs/${MODEL}/checkpoints/last/pretrained_model 
+export ACT_PER_CHUNK=50
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
-    --robot.cameras="{front:{type:opencv,index_or_path:\"/dev/video0\"
-,width:640,height:480,fps:15},wrist:{type:opencv,index_or_path:\"/dev/video2\"
-,width:640,height:480,fps:15}}" \
+    --robot.cameras="{front: {type: opencv, index_or_path: \"/dev/video0\"
+, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
+, width: 640, height: 480, fps: 15}}" \
     --robot.id=didi \
     --task="${PROMPT}" \
     --server_address=192.168.0.78:9999 \
