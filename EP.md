@@ -138,7 +138,7 @@ python examples/lekiwi/replay.py
 
 # Visualize Dataset (HF -> rdd -> rerun.io)
 ```
-python lerobot_dataset_viz.py
+lerobot-dataset-viz --repo-id /ssd1t/david/datasets/davidlau90/basket_1 --episode-index 0 --num-workers 16 # --save 1 --output-dir /ssd1t/david/datasets/viz_rdd
 ```
 
 # PC 5080 sm120 Support
@@ -158,11 +158,79 @@ pip install torch==2.7	torchcodec==0.5 torchvision torchaudio --index-url https:
 
 Note: batch_size=1
 
+## Downlaod Dataset on PC
+```
+cd /ssd1t/david/datasets
+REPO_ID=basket_1
+hf download davidlau90/${REPO_ID} --repo-type dataset --local-dir davidlau90/${REPO_ID}
+```
+
 ## Experiment on RTX 5080 
 ```
 export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 export HF_ENDPOINT=https://hf-mirror.com
+
+
+# train basket on top of grab
+export VARIANT=pi05-grab-basket-peft
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=davidlau90/basket_1 \
+    --dataset.root=/ssd1t/david/datasets/davidlau90/basket_1 \
+    --wandb.enable=false \
+    --job_name=pi05_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=27000 \
+    --log_fre=500 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=15 \
+    --resume=true \
+    --config_path=outputs/pi05-grab-peft/checkpoints/last/pretrained_model/train_config.json \
+> outputs/logs/${VARIANT}.txt 2>&1 &
+tail -f outputs/logs/${VARIANT}.txt
+
+# train basket 
+export VARIANT=pi05-basket-peft
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=davidlau90/basket_1 \
+    --dataset.root=/ssd1t/david/datasets/davidlau90/basket_1 \
+    --wandb.enable=false \
+    --job_name=pi05_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi05 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=27000 \
+    --log_fre=500 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=15 \
+> outputs/logs/${VARIANT}.txt 2>&1 & \
+tail -f outputs/logs/${VARIANT}.txt
+INFO step:1.0K smpl:1K ep:0 epch:0.07 loss:1577906160024183815598967357440.000 grdn:20070709530361576.000 lr:2.1e-05 updt_s:0.249 data_s:0.001
+INFO step:1.5K smpl:2K ep:0 epch:0.10 loss:2451823392886865535742228037632.000 grdn:inf lr:2.5e-05 updt_s:0.249 data_s:0.001
 
 # train grab & pick together
 export VARIANT=pi05-grab-and-pick-peft
