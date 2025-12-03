@@ -3,12 +3,6 @@
 [] Ubuntu Record / Inference video Play Slow, maybe try cuda decode https://github.com/huggingface/lerobot/pull/913/files
 [] Learn 1 Grab -> 2 Placement
 
-# Calibration
-```
-/Users/david/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/di.json # Mac
-/root/.cache/huggingface/lerobot/calibration/robots/lekiwi/didi.json # RP5
-```
-
 # RP5 Sync
 ```
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
@@ -94,7 +88,9 @@ vim src/lerobot/robots/lekiwi/config_lekiwi.py
 # Calibration
 ```
 lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/tty.usbmodem5AB01813381 --teleop.id=di
-lerobot-calibrate --robot.type=lekiwi --robot.id=didi
+lerobot-calibrate --robot.type=lekiwi --robot.id=didi --robot.cameras '{front: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30}, wrist: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30} }' 
+# /Users/david/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/di.json # Mac
+# /root/.cache/huggingface/lerobot/calibration/robots/lekiwi/didi.json # RP5
 ```
 
 # Start Tele Op (PC leader arm)
@@ -104,7 +100,7 @@ python examples/lekiwi/teleoperate.py
 
 # Start Host (RP)
 ```
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 15}}"
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30},wrist: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30} }'
 ```
 
 # Dataset Record 
