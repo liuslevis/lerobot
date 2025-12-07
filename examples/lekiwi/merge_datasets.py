@@ -23,7 +23,9 @@ merged_ds = merge_datasets(
     output_dir = Path(f"{HF_DATASET_ROOT}/{out_repo_id}"),
 )
 
-# Verify
+# Verify and tag as v3.0 format
 df_out = LeRobotDataset(repo_id=out_repo_id, root=HF_DATASET_ROOT+f"/{out_repo_id}")
-df_out.push_to_hub()
 hub_api.create_tag(out_repo_id, tag="v3.0", repo_type="dataset")
+
+# Push to hub
+df_out.push_to_hub()
