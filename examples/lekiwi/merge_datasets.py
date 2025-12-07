@@ -5,18 +5,20 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from huggingface_hub import HfApi
 hub_api = HfApi()
 import os
-# os.environ["HF_DATASETS_OFFLINE"] = "1"
-# os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["HF_HOME"] = "/Volumes/KIOXIA2T/huggingface"
+os.environ["HF_HOME_HUB"] = "/Volumes/KIOXIA2T/huggingface/hub"
+HF_DATASET_ROOT = "/Volumes/KIOXIA2T/huggingface/lerobot"
 
-os.environ["HF_HOME"] = "/ssd1t/david/huggingface"
-os.environ["HF_HOME_HUB"] = "/ssd1t/david/huggingface/hub"
-HF_DATASET_ROOT = "/ssd1t/david/datasets"
-
-ds_0 = LeRobotDataset(repo_id="davidlau90/pickup_toy_457", root=HF_DATASET_ROOT+"/davidlau90/pickup_toy_457")
-ds_1 = LeRobotDataset(repo_id="davidlau90/grab_toy_1")
-out_repo_id = "davidlau90/grab_and_pickup"
+ds_1 = LeRobotDataset(repo_id="davidlau90/basket_1", root=HF_DATASET_ROOT+"/davidlau90/basket_1")
+ds_2 = LeRobotDataset(repo_id="davidlau90/basket_2", root=HF_DATASET_ROOT+"/davidlau90/basket_2")
+ds_3 = LeRobotDataset(repo_id="davidlau90/basket_3", root=HF_DATASET_ROOT+"/davidlau90/basket_3")
+ds_4 = LeRobotDataset(repo_id="davidlau90/basket_4", root=HF_DATASET_ROOT+"/davidlau90/basket_4")
+ds_5 = LeRobotDataset(repo_id="davidlau90/basket_5", root=HF_DATASET_ROOT+"/davidlau90/basket_5")
+out_repo_id = "davidlau90/basket_12345"
 merged_ds = merge_datasets(
-    datasets = [ds_0, ds_1],
+    datasets = [ds_1, ds_2, ds_3, ds_4, ds_5],
     output_repo_id = Path(out_repo_id),
     output_dir = Path(f"{HF_DATASET_ROOT}/{out_repo_id}"),
 )

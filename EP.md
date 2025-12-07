@@ -100,12 +100,13 @@ python examples/lekiwi/teleoperate.py
 
 # Start Host (RP)
 ```
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30},wrist: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30} }'
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30} }'
 ```
 
 # Dataset Record 
 ```
 python -i examples/lekiwi/record_toy.py
+python -i examples/lekiwi/record_basket.py
 ```
 
 - Right arrow key pressed. Exiting loop...

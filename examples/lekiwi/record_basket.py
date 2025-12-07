@@ -32,9 +32,17 @@ NUM_EPISODES = 50
 FPS = 30
 EPISODE_TIME_SEC = 480
 RESET_TIME_SEC = 1
-TASK_DESCRIPTION = "pick up toys and put it into basket"
-HF_REPO_ID="davidlau90/basket_1"
-HF_REPO_PATH = f"/Volumes/KIOXIA2T/huggingface/lerobot/${HF_REPO_ID}"
+TASK_DESCRIPTION = "pick up a toy and put it into green basket"
+# basket_1: base still - 10 pick on desktop with pad # TODO video flip
+# basket_2: base still - 10 pick on desktop without pad # TODO video flip
+# basket_3: base still - 10 pick on wood floor # TODO video flip
+# basket_4: base still - 10 pick on mable floor (pov 1)
+# basket_5: base still - 10 pick on mable floor (pov 2)
+
+
+
+HF_REPO_ID="davidlau90/basket_5"
+HF_REPO_PATH = f"/Volumes/KIOXIA2T/huggingface/lerobot/{HF_REPO_ID}"
 
 # Create the robot and teleoperator configurations
 robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
@@ -127,14 +135,15 @@ while recorded_episodes < NUM_EPISODES and not events["stop_recording"]:
     dataset.save_episode()
     recorded_episodes += 1
 
+# Write meta/episodes/chunk-00x first
+dataset.finalize()
+
 # Clean up
 log_say("Stop recording")
 robot.disconnect()
 leader_arm.disconnect()
 keyboard.disconnect()
 listener.stop()
-
-dataset.finalize()
 
 # Push to hub
 dataset.repo_id = HF_REPO_ID
