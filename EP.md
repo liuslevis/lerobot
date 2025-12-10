@@ -151,6 +151,33 @@ export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 export HF_ENDPOINT=https://hf-mirror.com
 
+export VARIANT=pi0-baske
+export REPO_ID=davidlau90/basket_12345
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=${REPO_ID} \
+    --dataset.root=/ssd1t/david/datasets/${REPO_ID} \
+    --wandb.enable=true \
+    --job_name=pi0_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi0 \
+    --policy.pretrained_path=lerobot/pi0_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=false \
+    --policy.freeze_language_model=false \
+    --policy.use_lora=false \
+    --steps=30000 \
+    --log_freq=50 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=128 \
+> outputs/logs/${VARIANT}.txt 2>&1
+tail -f outputs/logs/${VARIANT}.txt
+
 
 export VARIANT=pi0-basket-peft
 export REPO_ID=davidlau90/basket_12345
@@ -158,7 +185,7 @@ rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
     --dataset.repo_id=${REPO_ID} \
     --dataset.root=/ssd1t/david/datasets/${REPO_ID} \
-    --wandb.enable=false \
+    --wandb.enable=true \
     --job_name=pi0_training \
     --output_dir=outputs/${VARIANT} \
     --policy.repo_id=davidlau90/${VARIANT} \
@@ -174,9 +201,8 @@ python src/lerobot/scripts/lerobot_train.py \
     --steps=30000 \
     --log_freq=200 \
     --eval_freq=1000 \
-    --eval_freq=1000 \
     --save_freq=3000 \
-    --batch_size=10 \
+    --batch_size=128 \
 > outputs/logs/${VARIANT}.txt 2>&1
 tail -f outputs/logs/${VARIANT}.txt
 
@@ -492,9 +518,9 @@ export HF_ENDPOINT=https://hf-mirror.com
 hf auth login --token ${HUGGINGFACE_TOKEN} --add-to-git-credential
 wandb login --relogin ${WANDB_TOKEN}
 
-# hf download hxdoso/new_frame
-# hf download lerobot/pi05_base 
-# hf download google/paligemma-3b-pt-224 --repo-type model
+hf download lerobot/pi05_base 
+hf download lerobot/pi0_base 
+hf download google/paligemma-3b-pt-224 --repo-type model
 ```
 
 # Train: π0.5 A100

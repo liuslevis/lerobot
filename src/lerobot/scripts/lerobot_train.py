@@ -51,6 +51,16 @@ from lerobot.utils.utils import (
     init_logging,
 )
 
+# fix Triton out of resources when train and eval pi05 pytorch
+# https://github.com/Physical-Intelligence/openpi/issues/654
+import torch._inductor.config as cfg
+cfg.max_autotune = False
+# Avoid autotune backends
+#cfg.max_autotune_gemm_backends = "ATEN,CUTLASS,CPP"
+# TurnOff CUDA graphs
+#cfg.triton.cudagraphs = False
+#cfg.triton.cudagraph_trees = False
+
 
 def update_policy(
     train_metrics: MetricsTracker,
