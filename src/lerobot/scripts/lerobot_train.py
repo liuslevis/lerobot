@@ -97,10 +97,16 @@ def update_policy(
     # Clip gradients if specified
     if grad_clip_norm > 0:
         grad_norm = accelerator.clip_grad_norm_(policy.parameters(), grad_clip_norm)
+        # grad_norm = torch.nn.utils.clip_grad_norm_(
+        #     policy.parameters(), grad_clip_norm, error_if_nonfinite=False
+        # )
+        # logging.info(f"XJ debug grad_norm 1 {grad_norm} grad_clip_norm {grad_clip_norm}")
     else:
         grad_norm = torch.nn.utils.clip_grad_norm_(
             policy.parameters(), float("inf"), error_if_nonfinite=False
         )
+        # logging.info(f"XJ debug grad_norm 2 {grad_norm} grad_clip_norm {grad_clip_norm}")
+
 
     # Optimizer step
     with lock if lock is not None else nullcontext():

@@ -329,6 +329,8 @@ class PaliGemmaWithExpertModel(
         action_expert_config,
         use_adarms=None,
         precision: Literal["bfloat16", "float32"] = "bfloat16",
+        freeze_vision_encoder=False,
+        freeze_language_model=False
     ):
         if use_adarms is None:
             use_adarms = [False, False]
@@ -372,6 +374,35 @@ class PaliGemmaWithExpertModel(
         self.gemma_expert.model.embed_tokens = None
 
         self.to_bfloat16_for_selected_params(precision)
+
+        self.freeze_vision_encoder = freeze_vision_encoder
+        self.freeze_language_model = freeze_language_model
+        self.set_requires_grad()
+
+
+    def set_requires_grad(self):
+        if self.freeze_vision_encoder:
+            self.paligemma.vision_tower.eval()
+            for param in self.paligemma.vision_tower.parameters():
+                param.requires_grad = False        
+        if self.freeze_language_model:
+            self.paligemma.language_model.eval()
+            for param in self.paligemma.language_model.parameters():
+                param.requires_grad = False
+        else:
+            # To avoid unused params issue with distributed training
+            pass
+
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+
+        if self.freeze_vision_encoder:
+            self.paligemma.vision_tower.eval()
+            
+        if self.freeze_language_model:
+            self.paligemma.language_model.eval()
+
 
     def to_bfloat16_for_selected_params(self, precision: Literal["bfloat16", "float32"] = "bfloat16"):
         if precision == "bfloat16":
@@ -515,7 +546,18 @@ class PI0Pytorch(nn.Module):  # see openpi `PI0Pytorch`
             action_expert_config,
             use_adarms=[False, False],
             precision=config.dtype,
+            freeze_vision_encoder=self.config.freeze_vision_encoder,
+            freeze_language_model=self.config.freeze_language_model
         )
+
+        if config.use_lora:
+            print(f"Use LoRA: rank={config.lora_rank}, alpha={config.lora_alpha}")
+            self.replace_linear_with_lora(
+                self.paligemma_with_expert.gemma_expert.model,
+                config.lora_target_modules,
+                rank=config.lora_rank,
+                alpha=config.lora_alpha
+            )
 
         self.action_in_proj = nn.Linear(config.max_action_dim, action_expert_config.width)
         self.action_out_proj = nn.Linear(action_expert_config.width, config.max_action_dim)
@@ -543,6 +585,17 @@ class PI0Pytorch(nn.Module):  # see openpi `PI0Pytorch`
                 raise ValueError(msg)
         except ImportError:
             raise ValueError(msg) from None
+
+    def replace_linear_with_lora(self, module, target_modules, rank=8, alpha=16):
+        """Recursively replace Linear layers with LoRALinear in the given target_modules."""
+        for name, submodule in module.named_children():
+            print(f"Use LoRA at module name: {name} type: {type(submodule)}")
+            if isinstance(submodule, nn.Linear) and name in target_modules:
+                # Replace Linear with LoRALinear
+                setattr(module, name, LoRALinear(submodule, rank=rank, alpha=alpha))
+            else:
+                # Recursively apply to child modules
+                self.replace_linear_with_lora(submodule, target_modules, rank, alpha)
 
     def gradient_checkpointing_enable(self):
         """Enable gradient checkpointing for memory optimization."""

@@ -3,57 +3,24 @@
 [] Ubuntu Record / Inference video Play Slow, maybe try cuda decode https://github.com/huggingface/lerobot/pull/913/files
 [] Learn 1 Grab -> 2 Placement
 
+# FAQ
+
+Q: Why huge loss and grad?
+A: brasket_1 have longer time and fewer episodes → diffusion/action-chunking may get misaligned → incorrect temporal condition → model diverges?
+
+Q:
+A:
+
 # RP5 Sync
 ```
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
 ```
 
-# PC Sync
+# PC Sync Evaluate
 ```
 export HF_DATASETS_OFFLINE=1
 export HF_HUB_OFFLINE=1
 python examples/lekiwi/evaluate.py 
-```
-
-# PC Async
-```
-python -m lerobot.async_inference.policy_server --host=0.0.0.0 --port=9999
-```
-
-# RP Async
-
-Notes: X observation per chunk 
-```
-python -m lerobot.async_inference.robot_client     \
-    --robot.type=lekiwi     \
-    --robot.port=/dev/ttyACM0     \
-    --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"     \
-    --robot.id=didi     \
-    --task="pick up toys\n"     \
-    --server_address=192.168.0.78:9999     \
-    --policy_type=pi05     \
-    --pretrained_name_or_path=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model     \
-    --policy_device=cuda     \
-    --actions_per_chunk=50     \
-    --chunk_size_threshold=0.5     \
-    --aggregate_fn_name=weighted_average   \
-    --debug_visualize_queue_size=True
-
-
-python -m lerobot.async_inference.robot_client     \
-    --robot.type=lekiwi     \
-    --robot.port=/dev/ttyACM0     \
-    --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"     \
-    --robot.id=didi     \
-    --task="pick up toys\n"     \
-    --server_address=192.168.0.78:9999     \
-    --policy_type=pi05     \
-    --pretrained_name_or_path=/ssd1t/david/lerobot/outputs/pi05_toy_457/checkpoints/003000/pretrained_model     \
-    --policy_device=cuda     \
-    --actions_per_chunk=10     \
-    --chunk_size_threshold=0.5     \
-    --aggregate_fn_name=weighted_average   \
-    --debug_visualize_queue_size=False
 ```
 
 # LeKiwi Setup
@@ -137,9 +104,19 @@ davidlau90/grab_toy_1 # 抓小车 50次 不移动
 python examples/lekiwi/replay.py
 ```
 
-# Visualize Dataset (HF -> rdd -> rerun.io)
+# Dataset
+## Visualize Dataset (HF -> rdd -> rerun.io)
 ```
 lerobot-dataset-viz --repo-id /ssd1t/david/datasets/davidlau90/basket_1 --episode-index 0 --num-workers 16 # --save 1 --output-dir /ssd1t/david/datasets/viz_rdd
+```
+
+## Split Dataset
+```
+lerobot-edit-dataset \
+    --repo_id /ssd1t/david/datasets/davidlau90/basket_1_bak \
+    --operation.type split \
+    --operation.splits '{"train": 0.5, "test": 0.5}'
+
 ```
 
 # PC 5080 sm120 Support
@@ -166,19 +143,51 @@ REPO_ID=basket_1
 hf download davidlau90/${REPO_ID} --repo-type dataset --local-dir davidlau90/${REPO_ID}
 ```
 
-## Experiment on RTX 5080 
+## Train on 5080 
 ```
+export HF_HUB_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
 export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 export HF_ENDPOINT=https://hf-mirror.com
 
 
-# train basket on top of grab
-export VARIANT=pi05-grab-basket-peft
+export VARIANT=pi0-basket-peft
+export REPO_ID=davidlau90/basket_12345
 rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=davidlau90/basket_1 \
-    --dataset.root=/ssd1t/david/datasets/davidlau90/basket_1 \
+    --dataset.repo_id=${REPO_ID} \
+    --dataset.root=/ssd1t/david/datasets/${REPO_ID} \
+    --wandb.enable=false \
+    --job_name=pi0_training \
+    --output_dir=outputs/${VARIANT} \
+    --policy.repo_id=davidlau90/${VARIANT} \
+    --policy.type=pi0 \
+    --policy.pretrained_path=lerobot/pi0_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.dtype=bfloat16 \
+    --policy.device=cuda \
+    --policy.freeze_vision_encoder=true \
+    --policy.freeze_language_model=true \
+    --policy.use_lora=false \
+    --steps=30000 \
+    --log_freq=200 \
+    --eval_freq=1000 \
+    --eval_freq=1000 \
+    --save_freq=3000 \
+    --batch_size=10 \
+> outputs/logs/${VARIANT}.txt 2>&1
+tail -f outputs/logs/${VARIANT}.txt
+
+
+# train basket pi05 after grab
+export VARIANT=pi05-grab-basket-peft
+export REPO_ID=davidlau90/basket_12345
+rm -rf outputs/${VARIANT} && \
+python src/lerobot/scripts/lerobot_train.py \
+    --dataset.repo_id=${REPO_ID} \
+    --dataset.root=/ssd1t/david/datasets/${REPO_ID} \
     --wandb.enable=false \
     --job_name=pi05_training \
     --output_dir=outputs/${VARIANT} \
@@ -192,23 +201,24 @@ python src/lerobot/scripts/lerobot_train.py \
     --policy.freeze_vision_encoder=true \
     --policy.freeze_language_model=true \
     --policy.use_lora=false \
-    --steps=27000 \
-    --log_fre=500 \
-    --eval_freq=1000 \
+    --optimizer.grad_clip_norm=1.0 \
+    --steps=300000 \
+    --log_fre=200 \
     --eval_freq=1000 \
     --save_freq=3000 \
     --batch_size=15 \
     --resume=true \
     --config_path=outputs/pi05-grab-peft/checkpoints/last/pretrained_model/train_config.json \
-> outputs/logs/${VARIANT}.txt 2>&1 &
+> outputs/logs/${VARIANT}.txt 2>&1 
 tail -f outputs/logs/${VARIANT}.txt
 
-# train basket 
+# train basket pi05
 export VARIANT=pi05-basket-peft
+export REPO_ID=davidlau90/basket_12345
 rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
-    --dataset.repo_id=davidlau90/basket_1 \
-    --dataset.root=/ssd1t/david/datasets/davidlau90/basket_1 \
+    --dataset.repo_id=${REPO_ID} \
+    --dataset.root=/ssd1t/david/datasets/${REPO_ID} \
     --wandb.enable=false \
     --job_name=pi05_training \
     --output_dir=outputs/${VARIANT} \
@@ -222,16 +232,16 @@ python src/lerobot/scripts/lerobot_train.py \
     --policy.freeze_vision_encoder=true \
     --policy.freeze_language_model=true \
     --policy.use_lora=false \
-    --steps=27000 \
-    --log_fre=500 \
+    --steps=15000 \
+    --log_freq=200 \
     --eval_freq=1000 \
     --eval_freq=1000 \
     --save_freq=3000 \
     --batch_size=15 \
-> outputs/logs/${VARIANT}.txt 2>&1 & \
+> outputs/logs/${VARIANT}.txt 2>&1
 tail -f outputs/logs/${VARIANT}.txt
-INFO step:1.0K smpl:1K ep:0 epch:0.07 loss:1577906160024183815598967357440.000 grdn:20070709530361576.000 lr:2.1e-05 updt_s:0.249 data_s:0.001
-INFO step:1.5K smpl:2K ep:0 epch:0.10 loss:2451823392886865535742228037632.000 grdn:inf lr:2.5e-05 updt_s:0.249 data_s:0.001
+
+
 
 # train grab & pick together
 export VARIANT=pi05-grab-and-pick-peft
@@ -259,13 +269,6 @@ python src/lerobot/scripts/lerobot_train.py \
     --save_freq=3000 \
     --batch_size=15 \
 > outputs/logs/${VARIANT}.txt 2>&1
-INFO step:1.0K smpl:15K ep:25 epch:0.33 loss:0.091 grdn:0.745 lr:2.1e-05 updt_s:2.443 data_s:0.007
-INFO step:5.0K smpl:75K ep:125 epch:1.66 loss:0.064 grdn:0.727 lr:2.3e-05 updt_s:2.443 data_s:0.006
-INFO step:10.0K smpl:150K ep:249 epch:3.33 loss:0.053 grdn:0.736 lr:1.9e-05 updt_s:2.442 data_s:0.007
-INFO step:12.0K smpl:180K ep:299 epch:3.99 loss:0.053 grdn:0.733 lr:1.6e-05 updt_s:2.442 data_s:0.007
-INFO step:13.0K smpl:195K ep:324 epch:4.32 loss:0.049 grdn:0.753 lr:1.5e-05 updt_s:2.443 data_s:0.007
-INFO step:14.0K smpl:210K ep:349 epch:4.66 loss:0.051 grdn:0.766 lr:1.3e-05 updt_s:2.445 data_s:0.007
-INFO step:14.5K smpl:218K ep:362 epch:4.82 loss:0.050 grdn:0.738 lr:1.3e-05 updt_s:2.453 data_s:0.007
 
 # train pick on top of grab 
 export VARIANT=pi05-grab-pick-peft
@@ -434,14 +437,18 @@ export MODEL="pi05-grab-pick-peft"
 export PROMPT="grab the toy\n" # barely move
 export PROMPT="pickup the toy\n" # continous try to grab. succ grab and pickup after 5 tries. failed to place. 
 
+export MODEL="pi05-basket-peft"
+export PROMPT="grab the toy and put it into basket\n" # failed to catch. have put to basket action
+
+export MODEL="pi05-grab-basket-peft"
+export PROMPT="grab the toy and put it into basket\n" # barely move
+
 export CKPT=/ssd1t/david/lerobot/outputs/${MODEL}/checkpoints/last/pretrained_model 
 export ACT_PER_CHUNK=50
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
-    --robot.cameras="{front: {type: opencv, index_or_path: \"/dev/video0\"
-, width: 640, height: 480, fps: 15}, wrist: {type: opencv, index_or_path: \"/dev/video2\"
-, width: 640, height: 480, fps: 15}}" \
+    --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30} }' \
     --robot.id=didi \
     --task="${PROMPT}" \
     --server_address=192.168.0.78:9999 \

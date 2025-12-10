@@ -257,6 +257,9 @@ def merge_datasets(
         aggr_repo_id=output_repo_id,
         roots=roots,
         aggr_root=output_dir,
+        video_files_size_in_mb=30000 
+        # TODO work around fix for RuntimeError: Invalid frame index=37278 for streamIndex=0; must be less than 19362 
+        # https://github.com/huggingface/lerobot/issues/2328
     )
 
     merged_dataset = LeRobotDataset(
