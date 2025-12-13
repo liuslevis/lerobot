@@ -151,7 +151,7 @@ export HF_HOME=/ssd1t/david/huggingface
 export HF_HOME_HUB=/ssd1t/david/huggingface/hub
 export HF_ENDPOINT=https://hf-mirror.com
 
-export VARIANT=pi0-baske
+export VARIANT=pi0-basket
 export REPO_ID=davidlau90/basket_12345
 rm -rf outputs/${VARIANT} && \
 python src/lerobot/scripts/lerobot_train.py \
@@ -174,7 +174,7 @@ python src/lerobot/scripts/lerobot_train.py \
     --log_freq=50 \
     --eval_freq=1000 \
     --save_freq=3000 \
-    --batch_size=128 \
+    --batch_size=32 \
 > outputs/logs/${VARIANT}.txt 2>&1
 tail -f outputs/logs/${VARIANT}.txt
 
@@ -199,10 +199,10 @@ python src/lerobot/scripts/lerobot_train.py \
     --policy.freeze_language_model=true \
     --policy.use_lora=false \
     --steps=30000 \
-    --log_freq=200 \
+    --log_freq=50 \
     --eval_freq=1000 \
     --save_freq=3000 \
-    --batch_size=128 \
+    --batch_size=15 \
 > outputs/logs/${VARIANT}.txt 2>&1
 tail -f outputs/logs/${VARIANT}.txt
 
@@ -469,6 +469,10 @@ export PROMPT="grab the toy and put it into basket\n" # failed to catch. have pu
 export MODEL="pi05-grab-basket-peft"
 export PROMPT="grab the toy and put it into basket\n" # barely move
 
+export MODEL="pi0-basket-peft-on-4090"
+export PROMPT="grab the toy and put it into basket\n" # barely move
+
+
 export CKPT=/ssd1t/david/lerobot/outputs/${MODEL}/checkpoints/last/pretrained_model 
 export ACT_PER_CHUNK=50
 python -m lerobot.async_inference.robot_client \
@@ -509,7 +513,7 @@ cd /ssd1t/david/lerobot
 conda activate lerobot
 # conda install -c conda-forge ffmpeg=6.1.1 -y &
 # pip install -e ".[lekiwi,pi]"
-# git config --global credential.helper store
+git config --global credential.helper store
 export HUGGINGFACE_TOKEN=
 export WANDB_TOKEN=
 export HF_HOME=/ssd1t/david/huggingface
