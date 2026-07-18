@@ -469,7 +469,8 @@ class RobotClient:
 @draccus.wrap()
 def async_client(cfg: RobotClientConfig):
     logging.info(pformat(asdict(cfg)))
-
+    logging.info(f"SUPPORTED_ROBOTS:{SUPPORTED_ROBOTS}")
+    print("LOADING FROM:", __file__)
     if cfg.robot.type not in SUPPORTED_ROBOTS:
         raise ValueError(f"Robot {cfg.robot.type} not yet supported!")
 

@@ -186,7 +186,7 @@ class LeKiwi(Robot):
         # and torque can be safely disabled to run calibration.
         self.bus.disable_torque()
         # self.bus.configure_motors()
-        new_val = 254
+        new_val = 1  # 254
         logger.info(f"XJ Debug: too fast (254), conf motors to {new_val} slow down")
         self.bus.configure_motors(return_delay_time=0,
                                   maximum_acceleration=new_val,
