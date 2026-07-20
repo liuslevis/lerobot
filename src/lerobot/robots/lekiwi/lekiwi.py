@@ -112,7 +112,29 @@ class LeKiwi(Robot):
         if self.is_connected:
             raise DeviceAlreadyConnectedError(f"{self} already connected")
 
-        self.bus.connect()
+        # Retry the bus handshake a few times. Motors that recently tripped a
+        # hardware fault (overload, overheat) may not respond to the first ping
+        # but can self-recover after a brief delay.
+        last_err: Exception | None = None
+        for attempt in range(3):
+            try:
+                self.bus.connect()
+                last_err = None
+                break
+            except (RuntimeError, ConnectionError) as e:
+                last_err = e
+                # Make sure the port is closed before we retry, otherwise the
+                # next connect() raises DeviceAlreadyConnectedError.
+                if self.bus.is_connected:
+                    self.bus.port_handler.closePort()
+                logger.warning(
+                    f"Bus connect attempt {attempt + 1}/3 failed: {e}."
+                    " Waiting 2 s before retrying..."
+                )
+                time.sleep(2.0)
+        if last_err is not None:
+            raise last_err
+
         if not self.is_calibrated and calibrate:
             logger.info(
                 "Mismatch between calibration values in the motor and the calibration file or no calibration file found"
@@ -203,7 +225,16 @@ class LeKiwi(Robot):
         for name in self.base_motors:
             self.bus.write("Operating_Mode", name, OperatingMode.VELOCITY.value)
 
-        self.bus.enable_torque()
+        # Read Status and attempt to recover any motor that is latched in a
+        # hardware fault (overload / overheat). The motor will self-clear after
+        # Protection_Time once the physical load is gone.
+        self.bus.recover_from_fault()
+
+        # Enable torque (per-motor resilient — a faulty motor is skipped, not fatal)
+        self.bus.enable_torque(num_retry=5)
+
+        # Final status check for diagnostics.
+        self.bus.read_status()
 
     def setup_motors(self) -> None:
         for motor in chain(reversed(self.arm_motors), reversed(self.base_motors)):

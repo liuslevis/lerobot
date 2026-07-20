@@ -14,7 +14,7 @@ A:
 
 # RP5 Sync
 ```
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video0\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras="{ front: {type: opencv, index_or_path: \"/dev/video2\" , width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: \"/dev/video2\", width: 640, height: 480, fps: 30}}"
 ```
 
 # PC Sync Evaluate
@@ -58,7 +58,7 @@ vim src/lerobot/robots/lekiwi/config_lekiwi.py
 # Calibration (PC direct control)
 ```
 lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --teleop.id=di
-lerobot-calibrate --robot.type=lekiwi --robot.id=didi --robot.cameras '{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30}, wrist: {"type": "opencv", "index_or_path": "/dev/video7", "width": 640, "height": 480, "fps": 30} }' 
+lerobot-calibrate --robot.type=lekiwi --robot.id=didi --robot.cameras '{front: {"type": "opencv", "index_or_path": "/dev/video2", "width": 1920, "height": 1080, "fps": 30}, wrist: {"type": "opencv", "index_or_path": "/dev/video6", "width": 1920, "height": 1080, "fps": 30} }' 
 # /home/david/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/di.json 
 # /home/david/.cache/huggingface/lerobot/calibration/robots/lekiwi/didi.json
 ```
@@ -71,7 +71,7 @@ python examples/lekiwi/teleoperate.py
 
 # Start Host PC
 ```
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30} }'
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video2", "width": 1920, "height": 1080, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video6", "width": 1920, "height": 1080, "fps": 30} }'
 ```
 
 # Dataset Record 
@@ -482,7 +482,7 @@ export ACT_PER_CHUNK=50
 python -m lerobot.async_inference.robot_client \
     --robot.type=lekiwi \
     --robot.port=/dev/ttyACM0 \
-    --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30} }' \
+    --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video2", "width": 1920, "height": 1080, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 1920, "height": 1080, "fps": 30} }' \
     --robot.id=didi \
     --task="${PROMPT}" \
     --server_address=192.168.0.78:9999 \

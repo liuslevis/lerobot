@@ -201,7 +201,10 @@ class DynamixelMotorsBus(MotorsBus):
 
     def disable_torque(self, motors: str | list[str] | None = None, num_retry: int = 0) -> None:
         for motor in self._get_motors_list(motors):
-            self.write("Torque_Enable", motor, TorqueMode.DISABLED.value, num_retry=num_retry)
+            try:
+                self.write("Torque_Enable", motor, TorqueMode.DISABLED.value, num_retry=num_retry)
+            except (RuntimeError, ConnectionError) as e:
+                logger.warning(f"Ignoring error while disabling torque on motor {motor!r}: {e}")
 
     def _disable_torque(self, motor_id: int, model: str, num_retry: int = 0) -> None:
         addr, length = get_address(self.model_ctrl_table, model, "Torque_Enable")

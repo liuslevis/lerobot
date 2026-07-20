@@ -463,7 +463,17 @@ class MotorsBus(abc.ABC):
         if disable_torque:
             self.port_handler.clearPort()
             self.port_handler.is_using = False
-            self.disable_torque(num_retry=5)
+            try:
+                self.disable_torque(num_retry=5)
+            except (RuntimeError, ConnectionError) as e:
+                # A motor in hardware fault (e.g. Feetech overload error) can raise
+                # here. We must not let that abort the shutdown, otherwise the
+                # underlying C++ SDK is left in a broken state (core dump on
+                # interpreter exit) and the serial port is never closed.
+                logger.warning(
+                    f"Ignoring error while disabling torque during disconnect on "
+                    f"{self.__class__.__name__}('{self.port}'): {e}"
+                )
 
         self.port_handler.closePort()
         logger.debug(f"{self.__class__.__name__} disconnected.")

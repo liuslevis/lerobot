@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import time
 from copy import deepcopy
 from enum import Enum
 from pprint import pformat
@@ -295,8 +296,14 @@ class FeetechMotorsBus(MotorsBus):
 
     def disable_torque(self, motors: str | list[str] | None = None, num_retry: int = 0) -> None:
         for motor in self._get_motors_list(motors):
-            self.write("Torque_Enable", motor, TorqueMode.DISABLED.value, num_retry=num_retry)
-            self.write("Lock", motor, 0, num_retry=num_retry)
+            try:
+                self.write("Torque_Enable", motor, TorqueMode.DISABLED.value, num_retry=num_retry)
+                self.write("Lock", motor, 0, num_retry=num_retry)
+            except (RuntimeError, ConnectionError) as e:
+                # A motor may be in hardware fault (e.g. overload error) and refuse
+                # the write. Don't let one bad motor prevent disabling torque on
+                # the remaining ones.
+                logger.warning(f"Ignoring error while disabling torque on motor {motor!r}: {e}")
 
     def _disable_torque(self, motor_id: int, model: str, num_retry: int = 0) -> None:
         addr, length = get_address(self.model_ctrl_table, model, "Torque_Enable")
@@ -306,8 +313,116 @@ class FeetechMotorsBus(MotorsBus):
 
     def enable_torque(self, motors: str | list[str] | None = None, num_retry: int = 0) -> None:
         for motor in self._get_motors_list(motors):
-            self.write("Torque_Enable", motor, TorqueMode.ENABLED.value, num_retry=num_retry)
-            self.write("Lock", motor, 1, num_retry=num_retry)
+            try:
+                self.write("Torque_Enable", motor, TorqueMode.ENABLED.value, num_retry=num_retry)
+                self.write("Lock", motor, 1, num_retry=num_retry)
+            except (RuntimeError, ConnectionError) as e:
+                # A motor in hardware fault (e.g. overload) will refuse the write.
+                # Don't let one bad motor prevent enabling torque on the rest.
+                logger.warning(f"Ignoring error while enabling torque on motor {motor!r}: {e}")
+
+    # Feetech Status register (addr 65) error-bit masks
+    _STATUS_VOLTAGE = 0x01
+    _STATUS_ANGLE = 0x02
+    _STATUS_OVERHEAT = 0x04
+    _STATUS_OVER_CURRENT = 0x08
+    _STATUS_OVERLOAD = 0x20
+
+    def read_status(self, motors: str | list[str] | None = None) -> dict[str, int]:
+        """Read the ``Status`` register of each motor and log any active fault.
+
+        Returns a mapping ``{motor_name: status_byte}``. A status byte of ``0``
+        means no error; ``-1`` means the motor could not be reached.
+        """
+        flags_map = {
+            self._STATUS_VOLTAGE: "input_voltage",
+            self._STATUS_ANGLE: "angle_sensor",
+            self._STATUS_OVERHEAT: "overheat",
+            self._STATUS_OVER_CURRENT: "over_current",
+            self._STATUS_OVERLOAD: "overload",
+        }
+        statuses: dict[str, int] = {}
+        for motor in self._get_motors_list(motors):
+            try:
+                status = self.read("Status", motor, normalize=False)
+            except (RuntimeError, ConnectionError) as e:
+                logger.warning(f"Could not read Status on motor {motor!r}: {e}")
+                statuses[motor] = -1
+                continue
+            statuses[motor] = status
+            if status != 0:
+                flags = [name for bit, name in flags_map.items() if status & bit]
+                logger.warning(
+                    f"Motor {motor!r} Status=0x{status:02X} ({', '.join(flags)})"
+                    " — the motor is in hardware fault. If it does not recover"
+                    " after a few seconds, power-cycle the DC supply."
+                )
+        return statuses
+
+    def recover_from_fault(
+        self, motors: str | list[str] | None = None, max_attempts: int = 5
+    ) -> bool:
+        """Attempt to recover motors that are in hardware fault.
+
+        When a Feetech motor trips overload / overheat protection, it disables
+        torque on its own and latches an error bit in the ``Status`` register.
+        The motor will self-clear the error after ``Protection_Time`` (in 10 ms
+        units) **provided the physical load is gone** (e.g. the arm has fallen).
+
+        This method:
+        1. Reads ``Status`` on every motor.
+        2. For motors in fault, reads ``Protection_Time`` and waits for it to
+           elapse (plus a small margin).
+        3. Retries ``Torque_Enable = 0`` then ``Torque_Enable = 1``.
+        4. Repeats up to *max_attempts* times.
+
+        Returns ``True`` if every motor recovered, ``False`` otherwise.
+        """
+        motor_list = self._get_motors_list(motors)
+        statuses = self.read_status(motor_list)
+        faulty = {m: s for m, s in statuses.items() if s != 0}
+
+        if not faulty:
+            return True
+
+        for attempt in range(max_attempts):
+            # Read Protection_Time on each faulty motor so we know how long to wait.
+            wait_s = 2.0  # default if read fails
+            for motor in faulty:
+                try:
+                    pt = self.read("Protection_Time", motor, normalize=False)
+                    # Protection_Time is in 10 ms units (Feetech eManual)
+                    motor_wait = pt * 0.01
+                    wait_s = max(wait_s, motor_wait)
+                except (RuntimeError, ConnectionError):
+                    pass
+
+            logger.info(
+                f"Recovery attempt {attempt + 1}/{max_attempts}: {len(faulty)} motor(s) in fault."
+                f" Waiting {wait_s:.1f} s for Protection_Time to elapse..."
+            )
+            time.sleep(wait_s)
+
+            # Try to cycle torque on each faulty motor.
+            for motor in faulty:
+                for value in (TorqueMode.DISABLED.value, TorqueMode.ENABLED.value):
+                    try:
+                        self.write("Torque_Enable", motor, value, num_retry=3)
+                    except (RuntimeError, ConnectionError) as e:
+                        logger.debug(f"  {motor!r} Torque_Enable={value}: {e}")
+
+            # Re-check status.
+            statuses = self.read_status(list(faulty.keys()))
+            faulty = {m: s for m, s in statuses.items() if s != 0}
+            if not faulty:
+                logger.info("All motors recovered from hardware fault.")
+                return True
+
+        logger.warning(
+            f"{len(faulty)} motor(s) still in fault after {max_attempts} attempts: {faulty}."
+            " Power-cycle the DC supply to clear the hardware latch."
+        )
+        return False
 
     def _encode_sign(self, data_name: str, ids_values: dict[int, int]) -> dict[int, int]:
         for id_ in ids_values:
