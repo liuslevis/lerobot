@@ -72,6 +72,8 @@ python examples/lekiwi/teleoperate.py
 # Start Host PC
 ```
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video2", "width": 1920, "height": 1080, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video6", "width": 1920, "height": 1080, "fps": 30} }'
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 1920, "height": 1080, "fps": 5, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 1920, "height": 1080, "fps": 5} }'
+
 ```
 
 # Dataset Record 

@@ -73,4 +73,4 @@ def get_cv2_backend() -> int:
     # elif platform.system() == "Darwin":  # macOS
     #     return cv2.CAP_AVFOUNDATION
     else:  # Linux and others
-        return int(cv2.CAP_ANY)
+        return int(cv2.CAP_V4L2)
