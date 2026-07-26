@@ -69,18 +69,16 @@ lerobot-calibrate --robot.type=lekiwi --robot.id=didi --robot.cameras '{front: {
 python examples/lekiwi/teleoperate.py 
 ```
 
-# Start Host PC
+# Start Host LeKiwi via PC
 ```
 # No enough bandwith
 python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video2", "width": 1920, "height": 1080, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video6", "width": 1920, "height": 1080, "fps": 30} }'
 
 # Good
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 1920, "height": 1080, "fps": 5, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 1920, "height": 1080, "fps": 5} }'
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras={'"front": {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180, "fourcc": "MJPG"}, "wrist": {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30, "fourcc": "MJPG"}}'
 
-python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras='{front: {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180},wrist: {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30} }'
-
- python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=didi --host.connection_time_s=36000 --robot.cameras={"front": {"type": "opencv", "index_or_path": "/dev/video0", "width": 640, "height": 480, "fps": 30, "rotation": 180, "fourcc": "MJPG"}, "wrist": {"type": "opencv", "index_or_path": "/dev/video4", "width": 640, "height": 480, "fps": 30, "fourcc": "MJPG"}}
- 
+# Change if motor too slow
+new_val = 1  # to 254 lekiwi.py
 ```
 
 # Dataset Record 
