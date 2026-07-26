@@ -26,17 +26,20 @@ from lerobot.utils.constants import ACTION, OBS_STR
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
 from lerobot.utils.visualization_utils import init_rerun
+import platform
 
 NUM_EPISODES = 100
 FPS = 30
 EPISODE_TIME_SEC = 120
 RESET_TIME_SEC = 1
-TASK_DESCRIPTION = "lewiki toy pickup"
-HF_REPO_ID = "/Users/david/dev/lerobot/datasets/davidlau90/lekiwi_toy_3"
+TASK_DESCRIPTION = "lekiwi toy pickup"
+HF_REPO_ID = "davidlau90/lekiwi_toy_1"
+HF_REPO_PATH = "/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_1"
 
 # Create the robot and teleoperator configurations
 robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
-leader_arm_config = SO101LeaderConfig(port="/dev/tty.usbmodem5AB01813381", id="di")
+port = "/dev/tty.usbmodem5AB01813381" if platform.system() == 'Darwin' else "/dev/ttyACM0"
+leader_arm_config = SO101LeaderConfig(port=port, id="di")
 keyboard_config = KeyboardTeleopConfig()
 
 # Initialize the robot and teleoperator
@@ -54,7 +57,7 @@ dataset_features = {**action_features, **obs_features}
 
 # Create the dataset
 dataset = LeRobotDataset.create(
-    repo_id=HF_REPO_ID,
+    HF_REPO_PATH,
     fps=FPS,
     features=dataset_features,
     robot_type=robot.name,
@@ -124,6 +127,9 @@ while recorded_episodes < NUM_EPISODES and not events["stop_recording"]:
     dataset.save_episode()
     recorded_episodes += 1
 
+# Write meta/episodes/chunk-00x first
+dataset.finalize()
+
 # Clean up
 log_say("Stop recording")
 robot.disconnect()
@@ -131,5 +137,9 @@ leader_arm.disconnect()
 keyboard.disconnect()
 listener.stop()
 
-dataset.finalize()
+# Push to hub
+dataset.repo_id = HF_REPO_ID
 dataset.push_to_hub()
+from huggingface_hub import HfApi
+hub_api = HfApi()
+hub_api.create_tag(HF_REPO_ID, tag="v3.0", repo_type="dataset")
