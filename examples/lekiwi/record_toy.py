@@ -37,7 +37,7 @@ HF_REPO_ID = "davidlau90/lekiwi_toy_1"
 HF_REPO_PATH = "/ssd1t/david/lerobot/datasets/davidlau90/lekiwi_toy_1"
 
 # Create the robot and teleoperator configurations
-robot_config = LeKiwiClientConfig(remote_ip="192.168.0.207", id="didi")
+robot_config = LeKiwiClientConfig(remote_ip="localhost", id="didi")
 port = "/dev/tty.usbmodem5AB01813381" if platform.system() == 'Darwin' else "/dev/ttyACM0"
 leader_arm_config = SO101LeaderConfig(port=port, id="di")
 keyboard_config = KeyboardTeleopConfig()
